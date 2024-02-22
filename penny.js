@@ -20,7 +20,7 @@ import puppeteer from "puppeteer";
 
     // Navigate the page to a URL
     await page.goto(
-      "https://coop.volantinopiu.com/volantino1607800pv201.html?utm_source=coopliguria.volantinocoop.it&utm_medium=referral"
+      "https://www.penny.it/offerte"
     );
 
     // Set screen size
@@ -30,7 +30,7 @@ import puppeteer from "puppeteer";
     //   await page.type('.devsite-search-field', 'automate beyond recorder');
 
     const cookie = await page.waitForSelector(
-      "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+      "#onetrust-accept-btn-handler"
     );
     if (cookie) {
       cookie.click();
@@ -39,16 +39,16 @@ import puppeteer from "puppeteer";
     setTimeout(async () => {
       try {
         // Wait and click on first result
-        const button = await page.waitForSelector(".stats.esplodi");
-        await button.click();
-        await page.screenshot({ path: "./image.png" });
+        // const button = await page.waitForSelector(".stats.esplodi");
+        // await button.click();
         console.log("Page opened, waiting for cards...");
-        await page.waitForSelector(".card");
-        const cards = await page.$$(".card");
-        const scadenza = await page.$eval(
-          ".barra_laterale .fw-semibold",
-          ({ innerText }) => innerText.split("al ")[1].trim()
-        );
+        await page.waitForSelector(".ws-product-grid__list li.ws-card");
+        const cards = await page.$$(".ws-product-grid__list li.ws-card");
+        await page.screenshot({ path: "./image.png" });
+        // const scadenza = await page.$eval(
+        //   ".barra_laterale .fw-semibold",
+        //   ({ innerText }) => innerText.split("al ")[1].trim()
+        // );
         const prodotti = [];
         for (const card of cards) {
           let img = null;
@@ -56,24 +56,27 @@ import puppeteer from "puppeteer";
           let prodName = null;
           let prodQuantity = null;
           let needsCard = false
+          let scadenza = null
           img = await card.$eval("img", ({ src }) => src);
-
-          const priceEl = await card.$(".product-price");
+          await card.waitForSelector(".ws-product-tile__info")
+          const infoArea = await card.$(".ws-product-tile__info")
+          const priceEl = await infoArea.$(".ws-product-price-type__value");
           if (priceEl) {
-            price = await card.$eval(".product-price", (el) => el.innerText);
-          }
-          prodName = await card.$eval(
-            ".card-title",
+              price = await infoArea.$eval(".ws-product-price-type__value", (el) => el.innerText);
+            }
+            prodName = await infoArea.$eval(
+                "h3 span",
             ({ innerText }) => innerText
           );
-          prodQuantity = await card.$eval(
-            ".card-text",
+          prodQuantity = await infoArea.$eval(
+            ".ws-product-information ul li",
             ({ innerText }) => innerText
           );
-          needsCard = await card.$eval(".meccanica img", ({src}) => src.includes("soci"))
-          prodotti.push({ img, price, prodName, prodQuantity, store: "coop", needsCard });
+          needsCard = await card.$(".ws-product-tile-container__discount-info img") ? true : false
+          scadenza = await infoArea.$eval(".ws-product-price-validity span:last-of-type", ({innerText}) => innerText.slice(-10) )
+          prodotti.push({ img, price, prodName, prodQuantity, store: "penny", needsCard, scadenza });
         }
-        fs.writeFileSync("./coop.json", JSON.stringify({ prodotti, scadenza }));
+        fs.writeFileSync("./penny.json", JSON.stringify(prodotti));
         await browser.close();
       } catch (error) {
         console.log(error);
