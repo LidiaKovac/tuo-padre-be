@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "dom-parser": "^1.1.5",
+    "fs": "^0.0.1-security",
+    "i": "^0.3.7",
+    "moment": "^2.30.1",
+    "npm": "^10.4.0",
+    "puppeteer": "^22.2.0"
+  }
+}
