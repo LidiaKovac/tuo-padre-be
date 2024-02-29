@@ -1,10 +1,6 @@
 import fs from "fs";
 import puppeteer from "puppeteer";
-function delay(time) {
-  return new Promise(function (resolve) {
-    setTimeout(resolve, time);
-  });
-}
+import { delay } from "../../utils";
 
 const scrapeCategory = async (page) => {
   try {
