@@ -33,31 +33,39 @@ const scrollToBottom = async (page) => {
   }
 };
 const expandAll = async (page) => {
-  let firstClickableButton = await page.waitForSelector(
-    ".load-more-products-btn:not([style])",
-    { visible: true }
-  );
-  let count = 0;
-  while (firstClickableButton) {
-    console.log(count);
-    await delay(250);
+  try {
     let hasClickableButton = await page.$(
       ".load-more-products-btn:not([style])"
     );
-    if (!firstClickableButton) break;
-    if (!hasClickableButton) break;
+    if (hasClickableButton) {
+      let firstClickableButton = await page.waitForSelector(
+        ".load-more-products-btn:not([style])",
+        { visible: true }
+      );
+      console.log("Expanding, please wait.");
+      while (firstClickableButton) {
+        await delay(250);
+        hasClickableButton = await page.$(
+          ".load-more-products-btn:not([style])"
+        );
+        if (!firstClickableButton) break;
+        if (!hasClickableButton) break;
 
-    firstClickableButton = await page.waitForSelector(
-      ".load-more-products-btn:not([style])",
-      { visible: true }
-    );
+        firstClickableButton = await page.waitForSelector(
+          ".load-more-products-btn:not([style])",
+          { visible: true }
+        );
 
-    // const expandButton = await page.waitForSelector(
-    //   ".load-more-products-btn"
-    // );
+        // const expandButton = await page.waitForSelector(
+        //   ".load-more-products-btn"
+        // );
 
-    await firstClickableButton.click();
-    count++;
+        await firstClickableButton.click();
+      }
+    }
+    console.log("Categories expanded, scraping");
+  } catch (error) {
+    console.log("Error");
   }
 };
 
@@ -94,6 +102,7 @@ const scrapeVolantino = async (page) => {
           ({ innerText }) => innerText
         );
     }
+    if (!price) continue;
     prodName = await card.$eval(".card-top p", ({ innerText }) => innerText);
 
     needsCard = (await card.$(".fidaty")) ? true : false;
@@ -162,13 +171,15 @@ const acceptCookies = async (page) => {
       );
 
       const currPage = await browser.newPage();
+      await currPage.setViewport({ width: 1795, height: 1024 });
+
       await currPage.goto(btn);
       await acceptCookies(currPage);
 
       //   await currPage.screenshot({ path: "./image.png" });
 
       const newPrds = await scrapeVolantino(currPage);
-      prds = [...prds, ...newPrds]
+      prds = [...prds, ...newPrds];
       await currPage.goto(
         "https://www.esselunga.it/it-it/promozioni/volantini.ben.html"
       );
@@ -176,10 +187,7 @@ const acceptCookies = async (page) => {
       //   return newPrds;
     }
 
-    fs.writeFileSync(
-      "./esselunga/esselunga.json",
-      JSON.stringify([...prds, ...toAdd])
-    );
+    fs.writeFileSync("./esselunga/esselunga.json", JSON.stringify(prds));
     await browser.close();
   } catch (error) {
     console.log(error);
