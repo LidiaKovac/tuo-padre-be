@@ -1,15 +1,4 @@
-// import  cheerio  from "cheerio"
-// import {parseFromString} from "dom-parser"
-// fetch("https://coop.volantinopiu.com/volantino1607800pv201.html?utm_source=coopliguria.volantinocoop.it&utm_medium=referral")
-//     .then((res) => {
-//         return res.text()
-// }).then((volantino) => {
-//    const query =  cheerio.load(volantino)
-//    console.log(query(".stats.esplodi").click())
-// })
-
 import fs from "fs";
-import moment from "moment";
 import puppeteer from "puppeteer";
 function delay(time) {
   return new Promise(function (resolve) {
