@@ -14,7 +14,7 @@ import { createWorker } from "tesseract.js";
     .map((w) => w.text)
     .join(" ");
   // remove stopwords?
-//   image will be the portion analyzed cut in the right bottom corner
+  //   image will be the portion analyzed cut in the right bottom corner
   console.log(price, name);
   await worker.terminate();
 })();
