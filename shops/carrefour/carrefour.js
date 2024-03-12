@@ -2,50 +2,7 @@ import fs from "fs";
 import puppeteer from "puppeteer";
 import { delay } from "../../utils";
 
-const scrapeCards = async (cards, scadenza, store) => {
-  const prods = [];
-  for (const card of cards) {
-    let img = null;
-    let price = null;
-    let prodName = null;
-    let prodQuantity = null;
-    let needsCard = false;
-    img = await card.$eval(".tile-image", ({ src }) => src);
-    //   await card.waitForSelector(".ws-product-tile__info")
-    //   const infoArea = await card.$(".ws-product-tile__info")
-    const priceEl = await card.$eval(
-      ".d-prices__final strong",
-      ({ innerText }) => innerText
-    );
-    if (priceEl.includes("€")) {
-      price = priceEl;
-    } else continue;
-    prodName = await card.$eval(
-      "h3.tile-description",
-      ({ innerText }) => innerText
-    );
-    // prodQuantity = await card.$eval(
-    //   ".ws-product-information ul li",
-    //   ({ innerText }) => innerText
-    // );
-    //   needsCard = (await card.$(
-    //     ".ws-product-tile-container__discount-info img"
-    //   ))
-    //     ? true
-    //     : false;
 
-    prods.push({
-      img,
-      price,
-      prodName,
-      prodQuantity,
-      store,
-      needsCard,
-      scadenza,
-    });
-  }
-  return prods;
-};
 const carrefourExpress = async () => {
   try {
     // Launch the browser and open a new blank page
