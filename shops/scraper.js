@@ -1,10 +1,11 @@
-import fs from "fs";
+import { writeFileSync } from "fs";
 import puppeteer from "puppeteer";
 import { addToJSONFile, delay, scrollToBottom } from "../utils/index.js";
-import { scrape, scrapeCards } from "../utils/carrefour.js";
+import { scrape } from "../utils/carrefour.js";
 import { Logger } from "./logger.js";
+import moment from "moment";
 
-class Scraper {
+export class Scraper {
   //   General
   static async launchBrowser(baseUrl, endpoint) {
     const browser = await puppeteer.launch({
@@ -45,7 +46,6 @@ class Scraper {
       // Wait and click on first result
       await delay(3000);
       await page.screenshot({ path: `./images/image-${shopName}.png` });
-      Logger.log("Screenshot done");
       const button = await page.waitForSelector(".esplodi", { visible: true });
       await button.click();
       Logger.log("Page opened, waiting for cards...");
@@ -176,7 +176,6 @@ class Scraper {
 
       await this.acceptCookies(page, "#onetrust-accept-btn-handler");
       await delay(3000);
-      Logger.log("Page opened, waiting for cards...");
       await page.waitForSelector(".ws-product-grid__list li.ws-card");
       const cards = await page.$$(".ws-product-grid__list li.ws-card");
       await page.screenshot({ path: `./images/image-penny.png` });
@@ -242,7 +241,7 @@ class Scraper {
       await this.acceptCookies(page, "#onetrust-accept-btn-handler");
 
       await delay(3000);
-
+        await scrollToBottom(page)
       const volantini = await page.$$(".card.card--carousel:not(.promoclick)");
       for (let i = 1; i <= volantini.length; i++) {
         const volantino = await page.$(
@@ -253,6 +252,7 @@ class Scraper {
         await volantino.click();
         await delay(3000);
         await scrape(page);
+        Logger.log("Flyer no " + i + "  done.");
       }
       await browser.close();
     } catch (error) {
@@ -280,6 +280,7 @@ class Scraper {
         await volantino.click();
         await delay(3000);
         await scrape(page);
+        Logger.log("Flyer no " + i + " done.");
       }
       await browser.close();
     } catch (error) {
@@ -309,7 +310,6 @@ class Scraper {
               ".load-more-products-btn:not([style])",
               { visible: true }
             );
-            Logger.log("Expanding, please wait.");
             while (firstClickableButton) {
               await delay(100);
               hasClickableButton = await page.$eval(
@@ -333,23 +333,17 @@ class Scraper {
             }
           }
           await delay(5000);
-          Logger.log("Categories expanded, scraping");
         } catch (error) {
-          Logger.error("error while expanding: ", error);
+          Logger.error("error while expanding: " + error);
         }
       };
 
       const scrapeVolantino = async (page) => {
         try {
-          // const scadenza = await page.$eval(
-          //   ".barra_laterale .fw-semibold",
-          //   ({ innerText }) => innerText.split("al ")[1].trim()
-          // );
           await Promise.all([scrollToBottom(page), expandAll(page)]);
           //   expands all
 
           const cards = await page.$$(".card-item");
-          Logger.log("Found " + cards.length + " cards");
           //   const cards =
           const prodotti = [];
           for (const card of cards) {
@@ -393,6 +387,7 @@ class Scraper {
               scadenza,
             });
           }
+          Logger.log("Flyer done.");
           // await delay(10000)
           await page.goto(
             "https://www.esselunga.it/it-it/promozioni/volantini.ben.html"
@@ -403,11 +398,9 @@ class Scraper {
         }
       };
 
-      Logger.log("Page opened, waiting for cards...");
       const flyers = await page.$$(".single-flyer");
       let prds = [];
       for (const flyer of flyers) {
-        Logger.log("Page started");
         const btn = await flyer.$eval(
           ".btn-blue-primary.flyer-btn",
           ({ href }) => href
@@ -431,7 +424,7 @@ class Scraper {
           page,
           ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
         );
-        Logger.log("Page ended");
+        Logger.log("Flyer done.");
         addToJSONFile("./shops/db.json", prds);
         //   return newPrds;
       }
@@ -503,13 +496,11 @@ class Scraper {
               scadenza,
             });
           }
-          Logger.log(
-            "Adding to JSON for url: ",
-            await page.$eval(".ATape__Headline", ({ innerText }) => innerText)
-          );
+          Logger.log("Flyer done.");
+
           addToJSONFile("./shops/db.json", prodotti);
         } catch (error) {
-          Logger.log(error);
+          Logger.error(error);
         }
       };
 
@@ -540,13 +531,30 @@ class Scraper {
   }
 
   static async scrapeAll() {
+    writeFileSync("./shops/db.json", "[]");
+    Logger.log("Scraping has started...");
+    const startTime = new Date();
+    Logger.log("Scraping Carrefour Express: ");
     await this.scrapeCarrefourExpress();
+    Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    Logger.log("Scraping Carrefour Market: ");
     await this.scrapeCarrefourMarket();
+    Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    Logger.log("Scraping COOP: ");
     await this.scrapeCoop();
+    Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    Logger.log("Scraping Esselunga: ");
     await this.scrapeEsselunga();
+    Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    Logger.log("Scraping Pam: ");
     await this.scrapePam();
+    Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    Logger.log("Scraping Penny: ");
     await this.scrapePenny();
+    Logger.log("Scraping has ended.");
+    Logger.log("Time elapsed: " + moment(startTime).fromNow());
   }
 }
 
-Scraper.scrapeAll();
+
+// Scraper.scrapeAll() 
