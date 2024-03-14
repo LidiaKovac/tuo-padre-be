@@ -80,7 +80,6 @@ const upscale = async () => {
   try {
     const response = await fetch(
       `https://api.stability.ai/v1/generation/esrgan-v1-x2plus/image-to-image/upscale`,
-
       {
         method: "POST",
         headers: {
@@ -114,6 +113,18 @@ const upscale = async () => {
     console.log("Deleting files on cloudinary...");
     await cloudinary.api.delete_resources_by_prefix("shopping");
     await cloudinary.api.delete_resources_by_prefix("flyers");
+    const { url } = await cloudinary.uploader.upload(`./shops/basko/3.png`, {
+      folder: "flyers",
+    });
+    const WIDTH = 1102 * 3
+    const resized = cloudinary.image(`flyers/${url.split("/flyers/")[1]}`, {
+      width: WIDTH,
+      crop: "scale",
+    });
+    const resizedUrl = resized.split("src='")[1].split("' width=")[0];
+    const res = await fetch(resizedUrl);
+    const image = await res.arrayBuffer();
+    fs.writeFileSync("./shops/basko/upscaled/3-big.png", Buffer.from(image));
 
     // const formData = new FormData();
     // // const file = fs.createReadStream("https://volantinoggi.it/File/43b0b8d0-a8f2-4609-a4ec-7ef36b7a87d3/3.png");
@@ -138,13 +149,13 @@ const upscale = async () => {
 
     // const image = await response.arrayBuffer();
     // fs.writeFileSync("./shops/basko/3-big.png", Buffer.from(image));
-    await upscale();
-    const width = Math.round(1000 / 4);
-    const height = Math.round(1000 / 3);
+    // await upscale();
+    const width = Math.round(WIDTH / 4);
+    const height = Math.round(WIDTH / 3);
     for (let i = 0; i < 4; i++) {
       for (let y = 0; y < 3; y++) {
-        const startW = 20 + width * i;
-        const startH = 120 + height * y;
+        const startW = 60 + width * i;
+        const startH = 360 + height * y;
         await sharp("./shops/basko/upscaled/3-big.png")
           .greyscale()
           .threshold()
