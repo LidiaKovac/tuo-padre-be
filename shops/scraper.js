@@ -241,7 +241,7 @@ export class Scraper {
       await this.acceptCookies(page, "#onetrust-accept-btn-handler");
 
       await delay(3000);
-        await scrollToBottom(page)
+      await scrollToBottom(page);
       const volantini = await page.$$(".card.card--carousel:not(.promoclick)");
       for (let i = 1; i <= volantini.length; i++) {
         const volantino = await page.$(
@@ -556,5 +556,4 @@ export class Scraper {
   }
 }
 
-
-// Scraper.scrapeAll() 
+// Scraper.scrapeAll()
