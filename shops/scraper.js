@@ -1,11 +1,19 @@
 import { writeFileSync } from "fs";
-import puppeteer, { Browser } from "puppeteer";
-import { addToJSONFile, delay, scrollToBottom } from "../utils/index.js";
+import puppeteer from "puppeteer";
+import { v2 as cloudinary } from "cloudinary"
+
+import { addToJSONFile, configCloudinary, delay, scrollToBottom } from "../utils/index.js";
 import { scrape } from "../utils/carrefour.js";
 import { Logger } from "./logger.js";
 import moment from "moment";
 import { scrapeVolantino } from "../utils/esselunga.js";
 import { scrapeCategory } from "../utils/lidl.js";
+import path from "path";
+import { cleanup, uploadImages, upscaleAndCrop } from "../utils/basko.js";
+import { readdir } from "fs/promises";
+import { createWorker } from "tesseract.js";
+
+const __dirname = import.meta.dirname
 
 export class Scraper {
   browser;
@@ -383,7 +391,56 @@ export class Scraper {
       Logger.error(error);
     }
   }
+  static async scrapeBasko() {
+    const worker = await createWorker("ita_old");
 
+    try {
+      Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files");
+
+      const baskoPath = path.resolve(__dirname, "..", "shops", "basko")
+      await configCloudinary()
+
+      await cloudinary.api.delete_resources_by_prefix("shopping");
+      await cloudinary.api.delete_resources_by_prefix("flyers");
+      Logger.level(1).log("Phase 2️⃣ - Upscaling and cropping");
+
+      await upscaleAndCrop(3.5, baskoPath)
+
+      const images = [];
+      const folders = (await readdir(path.resolve(baskoPath, "parts")));
+      Logger.level(1).log("Phase 3️⃣ - Uploading images");
+
+      for (const folder of folders) {
+        await uploadImages(folder, baskoPath)
+        for (const img of images) {
+          const alreadyIn = JSON.parse(
+            readFileSync(path.resolve(__dirname, "db.json"), "utf-8")
+          );
+          if (alreadyIn.map(el => el.img).includes(img)) {
+            continue
+          }
+          Logger.level(1).log("Performing OCR")
+
+          const ret = await worker.recognize(img);
+          const prodName = ret.data.words.map((w) => w.text).join(" ");
+          const final = {
+            store: "basko",
+            img,
+            prodName,
+          };
+          alreadyIn.push(final);
+          await addToJSONFile(alreadyIn)
+        }
+      }
+      await worker.terminate();
+      await cleanup(baskoPath)
+
+    } catch (error) {
+      console.log(error)
+      Logger.error(error)
+      await worker.terminate()
+    }
+  }
   static async scrapeAll() {
     try {
 
@@ -420,4 +477,4 @@ export class Scraper {
   }
 }
 
-Scraper.scrapeAll();
+Scraper.scrapeBasko();
