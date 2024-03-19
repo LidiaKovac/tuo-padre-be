@@ -78,6 +78,7 @@ export const scrape = async (page) => {
         await delay(1000);
       } else break;
     }
+
     addToJSONFile("./shops/db.json", prodotti);
   } catch (error) {
     Logger.error(error);
