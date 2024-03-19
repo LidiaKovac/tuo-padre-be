@@ -21,10 +21,19 @@ export class Database {
       data
     };
   }
-  findByName(name) {
-    return this.data.filter((prod) =>
-      prod.prodName.toLowerCase().includes(name.toLowerCase())
-    );
+  findByName(name, page = 1, size = 20) {
+    page = parseInt(page)
+    const start = size * (page - 1);
+    // console.log(this.data)
+    const data = this.data.filter((prod) =>
+      prod?.prodName?.toLowerCase().includes(name.toLowerCase())
+    ).slice(start, start + size)
+    return {
+      count: this.data.length,
+      next: data.length > 0 ? `${process.env.URL}products?page=${page + 1}` : null,
+      prev: page > 1 ? `${process.env.URL}products?page=${page - 1}` : null,
+      data
+    };
   }
   findByIdAndEdit(id, body) {
     Logger.error("METHOD NOT IMPLEMENTED");

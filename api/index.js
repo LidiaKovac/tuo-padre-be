@@ -12,9 +12,9 @@ dotenv.config()
 const app = express();
 
 app.use(cors())
-app.use("*", (req,res,next) => {
-    Logger.log(`Request: ${req.method.toUpperCase()} ${req.originalUrl}`)
-    next()
+app.use("*", (req, res, next) => {
+  Logger.log(`Request: ${req.method.toUpperCase()} ${req.originalUrl} from ${req.socket.remoteAddress}`)
+  next()
 })
 app.use("/products", prodRoute);
 

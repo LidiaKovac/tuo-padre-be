@@ -531,29 +531,35 @@ export class Scraper {
   }
 
   static async scrapeAll() {
-    writeFileSync("./shops/db.json", "[]");
-    Logger.log("Scraping has started...");
-    const startTime = new Date();
-    Logger.log("Scraping Carrefour Express: ");
-    await this.scrapeCarrefourExpress();
-    Logger.log("Time elapsed: " + moment(startTime).fromNow());
-    Logger.log("Scraping Carrefour Market: ");
-    await this.scrapeCarrefourMarket();
-    Logger.log("Time elapsed: " + moment(startTime).fromNow());
-    Logger.log("Scraping COOP: ");
-    await this.scrapeCoop();
-    Logger.log("Time elapsed: " + moment(startTime).fromNow());
-    Logger.log("Scraping Esselunga: ");
-    await this.scrapeEsselunga();
-    Logger.log("Time elapsed: " + moment(startTime).fromNow());
-    Logger.log("Scraping Pam: ");
-    await this.scrapePam();
-    Logger.log("Time elapsed: " + moment(startTime).fromNow());
-    Logger.log("Scraping Penny: ");
-    await this.scrapePenny();
-    Logger.log("Scraping has ended.");
-    Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    try {
+
+
+      writeFileSync("./shops/db.json", "[]");
+      Logger.log("Scraping has started...");
+      const startTime = new Date();
+      Logger.log("Scraping Carrefour Express: ");
+      await this.scrapeCarrefourExpress();
+      Logger.log("Time elapsed: " + moment(startTime).fromNow());
+      Logger.log("Scraping Carrefour Market: ");
+      await this.scrapeCarrefourMarket();
+      Logger.log("Time elapsed: " + moment(startTime).fromNow());
+      Logger.log("Scraping COOP: ");
+      await this.scrapeCoop();
+      Logger.log("Time elapsed: " + moment(startTime).fromNow());
+      Logger.log("Scraping Esselunga: ");
+      await this.scrapeEsselunga();
+      Logger.log("Time elapsed: " + moment(startTime).fromNow());
+      Logger.log("Scraping Pam: ");
+      await this.scrapePam();
+      Logger.log("Time elapsed: " + moment(startTime).fromNow());
+      Logger.log("Scraping Penny: ");
+      await this.scrapePenny();
+      Logger.log("Scraping has ended.");
+      Logger.log("Time elapsed: " + moment(startTime).fromNow());
+    } catch (error) {
+      Logger.error(error)
+    }
   }
 }
 
-// Scraper.scrapeAll()
+Scraper.scrapeAll()

@@ -23,10 +23,11 @@ export const scrollToBottom = async (page) => {
 
 export const addToJSONFile = (path, content) => {
   let prev = JSON.parse(readFileSync(path, "utf-8"));
+  const titles = prev.map(el => el.prodName)
   if (content.length) {
     prev = [...prev, ...content];
   } else {
-    prev.push(content);
+    if (!titles.includes(content.prodName)) prev.push(content);
   }
   writeFileSync(path, JSON.stringify(prev));
   return prev;
