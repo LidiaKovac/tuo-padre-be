@@ -4,7 +4,6 @@ import { Logger } from "../shops/logger.js";
 export const scrapeCategory = async (page) => {
     try {
       const prodotti = [];
-      await page.screenshot({ path: `./images/image-lidl.png` });
 
       await scrollToBottom(page);
       await page.waitForSelector(".ACampaignGrid__item--product");

@@ -440,8 +440,6 @@ export class Scraper {
   }
   static async scrapeAll() {
     try {
-
-
       writeFileSync(path.resolve(__dirname, "db.json"), "[]");
       Logger.log("Scraping has started...");
       const startTime = new Date();
@@ -477,10 +475,3 @@ export class Scraper {
   }
 }
 
-try {
-
-  Scraper.scrapeAll();
-
-} catch (error) {
-  Logger.error(error)
-}

@@ -1,5 +1,5 @@
 import { Logger } from "../shops/logger.js";
-import { addToJSONFile, delay } from "./index.js";
+import { addToJSONFile, delay, scrollToBottom } from "./index.js";
 
 export const scrapeCards = async (cards, scadenza, store) => {
   const prods = [];
@@ -40,19 +40,21 @@ export const scrapeCards = async (cards, scadenza, store) => {
 export const scrape = async (page) => {
   try {
     const lista = await page.$("label[for='listing']");
-    await lista.scrollIntoView();
-    await lista.click();
+    await lista?.scrollIntoView();
+    await lista?.click();
     await delay(1000);
     const hasOrderBy = await page.$(".search-orderby");
     if (hasOrderBy) {
       await page.$eval(".search-orderby", (el) => el.remove());
     }
     let prodotti = [];
+    await scrollToBottom(page)
+
     const pageEl = await page.$eval(
       ".grid-footer p.text-center",
       ({ innerText }) => ({
-        size: innerText.split("Stai visualizzando ")[1].split("di")[0],
-        total: innerText.split("di ")[1].split(" prodotti")[0],
+        size: parseInt(innerText.split("Stai visualizzando ")[1].split("di")[0]),
+        total: parseInt(innerText.split("di ")[1].split(" prodotti")[0]),
       })
     );
     const totalPages = pageEl.total / pageEl.size;
@@ -64,10 +66,7 @@ export const scrape = async (page) => {
         ".js-flyer-end",
         ({ innerText }) => `${innerText}/${new Date().getFullYear()}`
       );
-      // const scadenza = await page.$eval(
-      //   ".barra_laterale .fw-semibold",
-      //   ({ innerText }) => innerText.split("al ")[1].trim()
-      // );
+
       const pageProds = await scrapeCards(cards, scadenza, "carrefour-express");
       prodotti = [...prodotti, ...pageProds];
       const hasNext = await page.$(".btn-show-more");

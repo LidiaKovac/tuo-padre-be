@@ -5,7 +5,7 @@ export class Database {
   data = [];
   constructor() {
     const file = readFileSync("./shops/db.json", "utf-8");
-    this.data = JSON.parse(file);
+    this.data = JSON.parse(file).filter(prod => prod.price);
   }
   findById(id) {
     Logger.error("METHOD NOT IMPLEMENTED");
@@ -25,11 +25,12 @@ export class Database {
     page = parseInt(page)
     const start = size * (page - 1);
     // console.log(this.data)
-    const data = this.data.filter((prod) =>
+    const found = this.data.filter((prod) =>
       prod?.prodName?.toLowerCase().includes(name.toLowerCase())
-    ).slice(start, start + size)
+    )
+    const data = found.slice(start, start + size)
     return {
-      count: this.data.length,
+      count: found.length,
       next: data.length > 0 ? `${process.env.URL}products?page=${page + 1}` : null,
       prev: page > 1 ? `${process.env.URL}products?page=${page - 1}` : null,
       data
