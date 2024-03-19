@@ -59,7 +59,6 @@ export const scrape = async (page) => {
     for (let i = 0; i <= totalPages; i++) {
       await page.waitForSelector(".product");
       const cards = await page.$$(".product");
-      await page.screenshot({ path: `./images/image-carrefour-ex.png` });
 
       const scadenza = await page.$eval(
         ".js-flyer-end",

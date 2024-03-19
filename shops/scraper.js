@@ -57,7 +57,6 @@ export class Scraper {
 
       // Wait and click on first result
       await delay(3000);
-      await page.screenshot({ path: `./images/image-${shopName}.png` });
       const button = await page.waitForSelector(".esplodi", { visible: true });
       await button.click();
       await page.waitForSelector(".card");
@@ -110,7 +109,7 @@ export class Scraper {
         });
       }
 
-      addToJSONFile("./shops/db.json", prodotti);
+      addToJSONFile(path.resolve(__dirname, "db.json"), prodotti);
     } catch (error) {
       Logger.error(error);
     }
@@ -193,7 +192,6 @@ export class Scraper {
       await delay(3000);
       await page.waitForSelector(".ws-product-grid__list li.ws-card");
       const cards = await page.$$(".ws-product-grid__list li.ws-card");
-      await page.screenshot({ path: `./images/image-penny.png` });
 
       Logger.level(1).log("Phase 2️⃣ - Scraping");
 
@@ -242,7 +240,7 @@ export class Scraper {
           scadenza,
         });
       }
-      addToJSONFile("./shops/db.json", prodotti);
+      addToJSONFile(path.resolve(__dirname, "db.json"), prodotti);
       await browser.close();
     } catch (error) {
       Logger.error(error);
@@ -349,7 +347,7 @@ export class Scraper {
           page,
           ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
         );
-        addToJSONFile("./shops/db.json", prds);
+        addToJSONFile(path.resolve(__dirname, "db.json"), prds);
       }
 
       await browser.close();
@@ -444,7 +442,7 @@ export class Scraper {
     try {
 
 
-      writeFileSync("./shops/db.json", "[]");
+      writeFileSync(path.resolve(__dirname, "db.json"), "[]");
       Logger.log("Scraping has started...");
       const startTime = new Date();
       Logger.log("Scraping Carrefour Express: ");
