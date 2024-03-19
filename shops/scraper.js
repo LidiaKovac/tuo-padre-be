@@ -1,4 +1,4 @@
-import { writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import puppeteer from "puppeteer";
 import { v2 as cloudinary } from "cloudinary"
 
@@ -392,8 +392,7 @@ export class Scraper {
     }
   }
   static async scrapeBasko() {
-    const worker = await createWorker("ita_old");
-
+    let worker
     try {
       Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files");
 
@@ -406,22 +405,22 @@ export class Scraper {
 
       await upscaleAndCrop(3.5, baskoPath)
 
-      const images = [];
+      let images = [];
       const folders = (await readdir(path.resolve(baskoPath, "parts")));
       Logger.level(1).log("Phase 3️⃣ - Uploading images");
+      worker = await createWorker("ita_old");
 
       for (const folder of folders) {
-        await uploadImages(folder, baskoPath)
-        for (const img of images) {
-          const alreadyIn = JSON.parse(
-            readFileSync(path.resolve(__dirname, "db.json"), "utf-8")
-          );
-          if (alreadyIn.map(el => el.img).includes(img)) {
-            continue
-          }
-          Logger.level(1).log("Performing OCR")
+        images = await uploadImages(folder, baskoPath)
+        // console.log(images)
+       
+        for (const { secure_url: img } of images) {
 
+          
+          Logger.level(1).log("Performing OCR")
+          // console.log(img)
           const ret = await worker.recognize(img);
+          // const ret = await worker.recognize("https://res.cloudinary.com/dhbeeld3u/image/upload/v1710881864/shopping/nqu74kpqq2s7wmiuilf9.jpg");
           const prodName = ret.data.words.map((w) => w.text).join(" ");
           const final = {
             store: "basko",
@@ -429,8 +428,8 @@ export class Scraper {
             prodName,
           };
           alreadyIn.push(final);
-          await addToJSONFile(alreadyIn)
         }
+        await addToJSONFile(path.resolve(__dirname, "db.json"), alreadyIn)
       }
       await worker.terminate();
       await cleanup(baskoPath)
@@ -477,4 +476,10 @@ export class Scraper {
   }
 }
 
-Scraper.scrapeBasko();
+try {
+
+  Scraper.scrapeBasko();
+
+} catch (error) {
+  Logger.error(error)
+}

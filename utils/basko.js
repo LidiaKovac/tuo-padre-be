@@ -235,17 +235,14 @@ export const upscaleAndCrop = async (amount, baskoPath) => {
 export const uploadImages = async (folder, chosenPath) => {
     const files = await readdir(path.resolve(chosenPath, "parts", folder))
 
-    Logger.level(2).log("Uploading files...");
-    const uploadPromises = files.map(file => {
-        if (file.includes("color")) {
-            return cloudinary.uploader.upload(
-                path.resolve(chosenPath, "parts", folder, file),
-                {
-                    folder: "shopping",
-                }
-            );
-        }
+    // Logger.level(2).log("Uploading files...");
+    const uploadPromises = files.filter(file => file.includes("color")).map(file => {
+        return cloudinary.uploader.upload(
+            path.resolve(chosenPath, "parts", folder, file),
+            {
+                folder: "shopping",
+            }
+        );
     })
-    await Promise.all(uploadPromises)
-    Logger.level(2).log("✅ Uploaded!");
+    return await Promise.all(uploadPromises)
 }

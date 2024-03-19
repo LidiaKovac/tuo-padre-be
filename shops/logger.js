@@ -4,10 +4,10 @@ export class Logger {
   static __hierarchy = ["error", "warn", "info", "debug"]; //wip
   tabLvl = 0;
   static msgColor = {
-    error: "🟥",
-    warn: "🟨",
-    info: "🟦",
-    debug: "🤯",
+    error: "\x1b[91m",
+    warn: "\x1b[33m",
+    info: "\x1b[36m",
+    debug: "\x1b[90m",
   };
   static exec(lvl, msg) {
     if (this.isLogLvl(lvl)) {
@@ -15,7 +15,7 @@ export class Logger {
       const tabs = "   ".repeat(this.tabLvl);
       console.log(
         `${this.msgColor[lvl]}[${lvl.toUpperCase()}] ${date} ||${tabs}`,
-        msg
+        msg, `\x1b[0m`
       );
     }
     this.tabLvl = 0;
@@ -59,3 +59,4 @@ export class Logger {
     return this;
   }
 }
+Logger.warning(`Logger level: ${config.logLevel}`)

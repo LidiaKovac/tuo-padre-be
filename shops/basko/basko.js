@@ -31,7 +31,7 @@ const scrapeBasko = async () => {
     const images = [];
     const folders = (await readdir(path.resolve(__dirname, "parts")));
     for (const folder of folders) {
-      uploadImages(folder)
+      await uploadImages(folder)
       for (const img of images) {
         const alreadyIn = JSON.parse(
           readFileSync(path.resolve(__dirname, "basko.json"), "utf-8")
@@ -60,4 +60,3 @@ const scrapeBasko = async () => {
   }
 }
 
-await scrapeBasko()
