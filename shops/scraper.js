@@ -409,14 +409,14 @@ export class Scraper {
       const folders = (await readdir(path.resolve(baskoPath, "parts")));
       Logger.level(1).log("Phase 3️⃣ - Uploading images");
       worker = await createWorker("ita_old");
-
+      const data = []
       for (const folder of folders) {
         images = await uploadImages(folder, baskoPath)
         // console.log(images)
-       
+
         for (const { secure_url: img } of images) {
 
-          
+
           Logger.level(1).log("Performing OCR")
           // console.log(img)
           const ret = await worker.recognize(img);
@@ -427,9 +427,9 @@ export class Scraper {
             img,
             prodName,
           };
-          alreadyIn.push(final);
+          data.push(final)
         }
-        await addToJSONFile(path.resolve(__dirname, "db.json"), alreadyIn)
+        await addToJSONFile(path.resolve(__dirname, "db.json"), data)
       }
       await worker.terminate();
       await cleanup(baskoPath)
@@ -467,6 +467,9 @@ export class Scraper {
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true));
       Logger.log("Scraping Lidl: ");
       await this.scrapeLidl();
+      Logger.log("Time elapsed: " + moment(startTime).fromNow(true));
+      Logger.log("Scraping Basko: ");
+      await this.scrapeLidl();
       Logger.log("Scraping has ended.");
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true));
       this.browser.close();
@@ -478,7 +481,7 @@ export class Scraper {
 
 try {
 
-  Scraper.scrapeBasko();
+  Scraper.scrapeAll();
 
 } catch (error) {
   Logger.error(error)
