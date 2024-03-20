@@ -14,16 +14,23 @@ prodRoute.get("/", async (req, res, next) => {
   let { page, size } = req.query
   if (!page) page = 1
   if (!size) size = 20
-  const count = await Product.find({
+  const q = {
     ...query.criteria,
+    prodName: query.criteria.prodName ? { $regex: query.criteria.prodName } : "",
+
+  }
+  console.log(query)
+  const count = await Product.find({
+    ...q,
     // price: {
     //   $exists: true
     // }
   }).count()
-  const prods = await Product.find(query.criteria, null, {
+  const prods = await Product.find(q, null, {
     limit: size,
     skip: size * page - 1,
   })
+  console.log(prods)
   // if (query) res.send(db.findByName(query, page, size))
   res.send({
     data: prods,
