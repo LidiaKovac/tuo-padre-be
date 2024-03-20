@@ -4,6 +4,7 @@
     "dev": "nodemon ./api"
   },
   "dependencies": {
+    "@nlpjs/lang-it": "^4.26.1",
     "axios": "^1.6.7",
     "cloudinary": "^2.0.3",
     "cors": "^2.8.5",
