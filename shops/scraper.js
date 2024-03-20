@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import puppeteer from "puppeteer";
 import { v2 as cloudinary } from "cloudinary"
 
@@ -14,6 +14,21 @@ import { readdir } from "fs/promises";
 import { createWorker } from "tesseract.js";
 
 const __dirname = import.meta.dirname
+
+
+/* 
+
+  TODO: figure out why carrefour is giving lots of empty images 
+  TODO: upload on mongo rather than using a huge json file (batch upload?)
+  TODO: fix esselunga + carrefour double products and repeated scraping (proably from "shop more" buttons)
+  TODO: make basko easier, cleaner and lighter
+
+
+  TODO: deploy as a background process
+  TODO: add autopush 
+
+
+*/
 
 export class Scraper {
   browser;
@@ -465,7 +480,7 @@ export class Scraper {
       await this.scrapeLidl();
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true));
       Logger.log("Scraping Basko: ");
-      await this.scrapeLidl();
+      await this.scrapeBasko();
       Logger.log("Scraping has ended.");
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true));
       this.browser.close();
