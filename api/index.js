@@ -25,17 +25,18 @@ app.use("*", (req, res, next) => {
 app.use("/products", prodRoute)
 
 Logger.log("Scheduling jobs...")
-cron.schedule("00 00 * * FRI", async () => {
+cron.schedule("00 8 * * *", async () => {
   // cron.schedule("54 11 * * WED", async () => {
   try {
-    console.log("Running every friday @ 00:00")
-    // await Scraper.scrapeAll()
+    console.log("Running every day @ 8AM")
+    await Scraper.scrapeAll()
     // await connectToDB()
     const { default: db } = await import("../shops/db.json", {
       assert: {
         type: "json"
       }
     })
+    // TODO: svuotare db prima di riempirlo
     const pages = Math.ceil(db.length / 100)
     for (let i = 0; i <= pages; i++) {
       const start = 100 * i
