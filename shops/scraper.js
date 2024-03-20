@@ -426,11 +426,11 @@ export class Scraper {
       for (const folder of folders) {
         images = await uploadImages(folder, baskoPath)
         // console.log(images)
+        Logger.level(2).log("Performing OCR")
 
         for (const { secure_url: img } of images) {
 
 
-          Logger.level(1).log("Performing OCR")
           // console.log(img)
           const ret = await worker.recognize(img);
           // const ret = await worker.recognize("https://res.cloudinary.com/dhbeeld3u/image/upload/v1710881864/shopping/nqu74kpqq2s7wmiuilf9.jpg");

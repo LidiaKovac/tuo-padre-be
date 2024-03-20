@@ -1,11 +1,13 @@
 import { readFileSync } from "fs";
 import { Logger } from "../shops/logger.js";
+import path from "path";
 
 export class Database {
   data = [];
   constructor() {
-    const file = readFileSync("./shops/db.json", "utf-8");
-    this.data = JSON.parse(file).filter(prod => prod.price);
+    const __dirname = import.meta.dirname
+    const file = readFileSync(path.resolve(__dirname, "..", "shops", "db.json"), "utf-8");
+    this.data = JSON.parse(file);
   }
   findById(id) {
     Logger.error("METHOD NOT IMPLEMENTED");

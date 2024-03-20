@@ -207,7 +207,7 @@ export const upscaleAndCrop = async (amount, baskoPath) => {
             const { height: h } = sizeOf(
                 path.resolve(baskoPath, "flyers", folder, image)
             )
-            Logger.level(2).log("Phase 🟢 - Cropping");
+            Logger.level(2).debug("Phase 🟢 - Cropping");
 
             const HEIGHT = h * amount
             if (ogHeight == ogWidth || ogWidth / ogHeight > 1) {
@@ -227,6 +227,7 @@ export const upscaleAndCrop = async (amount, baskoPath) => {
             }
 
         }
+        Logger.level(2).log("Phase 🟢 - Cropped");
     }
     return
 }

@@ -51,8 +51,8 @@ export const addToJSONFile = (path, content) => {
     };
     if (content.length) {
       content.forEach((c) => {
-        const prodNames = prev.map((el) => el.prodName);
-        if (!prodNames.includes(c.prodName)) {
+        const found = prev.find(p => (p.prodName === c.prodName) && (p.store === c.store))
+        if (!found) {
           Logger.debug("Added product with name:" + c.prodName);
           counter.added++;
           prev.push(c);
