@@ -1,4 +1,4 @@
 {
-    "logLevel": "debug",
-    "persistent": true
+    "logLevel": "info",
+    "persistent": false
 }
