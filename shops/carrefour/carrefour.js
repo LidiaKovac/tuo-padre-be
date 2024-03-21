@@ -23,7 +23,6 @@ const carrefourExpress = async () => {
     const cookie = await page.waitForSelector("#onetrust-accept-btn-handler");
     if (cookie) {
       cookie.click();
-      console.log("Cookie accettati");
     }
     await delay(3000);
     // Wait and click on first result

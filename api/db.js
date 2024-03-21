@@ -26,7 +26,6 @@ export class Database {
   findByName(name, page = 1, size = 20) {
     page = parseInt(page)
     const start = size * (page - 1);
-    // console.log(this.data)
     const found = this.data.filter((prod) =>
       prod?.prodName?.toLowerCase().includes(name.toLowerCase())
     )

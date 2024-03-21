@@ -8,7 +8,6 @@ const prodRoute = Router()
 
 prodRoute.get("/", async (req, res, next) => {
   let { page, size, store: stores, order, price } = req.query
-  console.log(price)
   const query = q2m(req.url.split("?")[1], {
     ignore: ["store", "page", "order"],
   })
@@ -23,7 +22,6 @@ prodRoute.get("/", async (req, res, next) => {
       })
     }
   }
-  console.log(query)
   if (!page) page = 1
   if (!size) size = 20
   const nlp = new StemmerIt()
@@ -33,8 +31,8 @@ prodRoute.get("/", async (req, res, next) => {
     prodName:
       query.criteria.prodName && query.criteria.prodName.length > 0
         ? {
-          $regex: new RegExp(`${nlp.stemWord(query.criteria.prodName)}`, "i"),
-        }
+            $regex: new RegExp(`${nlp.stemWord(query.criteria.prodName)}`, "i"),
+          }
         : undefined,
   }
   Logger.debug(commonQ)

@@ -6,7 +6,6 @@ import prodRoute from "./services/products/index.js"
 import listEndpoints from "express-list-endpoints"
 import { connectToDB } from "./configs/mongo.config.js"
 import Product from "./schemas/product.schema.js"
-import mongoose from "mongoose"
 import dotenv from "dotenv"
 import cors from "cors"
 import path from "path"
@@ -17,8 +16,7 @@ const app = express()
 app.use(cors())
 app.use("*", (req, res, next) => {
   Logger.log(
-    `Request: ${req.method.toUpperCase()} ${req.originalUrl} from ${
-      req.socket.remoteAddress
+    `Request: ${req.method.toUpperCase()} ${req.originalUrl} from ${req.socket.remoteAddress
     }`
   )
   next()
@@ -29,7 +27,7 @@ Logger.log("Scheduling jobs...")
 cron.schedule("00 8 * * *", async () => {
   // cron.schedule("54 11 * * WED", async () => {
   try {
-    console.log("Running every day @ 8AM")
+    Logger.log("Running every day @ 8AM")
     await Scraper.scrapeAll()
     // await connectToDB()
     const { default: db } = await import("../shops/db.json", {
@@ -50,7 +48,7 @@ cron.schedule("00 8 * * *", async () => {
       "[]"
     )
   } catch (error) {
-    console.log(error)
+    Logger.error(error)
   }
   // mongoose.disconnect()
 })

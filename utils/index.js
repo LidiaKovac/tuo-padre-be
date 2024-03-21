@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync } from "fs";
-import { Logger } from "../shops/logger.js";
+import { readFileSync, writeFileSync } from "fs"
+import { Logger } from "../shops/logger.js"
 import { v2 as cloudinary } from "cloudinary"
-import { readdir, unlink,  } from "fs/promises";
-import path from "path";
+import { readdir, unlink } from "fs/promises"
+import path from "path"
 
 export const configCloudinary = () =>
   cloudinary.config({
@@ -21,63 +21,69 @@ export const emptyFolder = async (folderName) => {
 
 export function delay(time) {
   return new Promise(function (resolve) {
-    setTimeout(resolve, time);
-  });
+    setTimeout(resolve, time)
+  })
 }
 
 export const scrollToBottom = async (page) => {
-  let currHeight = 0;
-  let maxHeight = await page.evaluate("document.body.scrollHeight");
+  let currHeight = 0
+  let maxHeight = await page.evaluate("document.body.scrollHeight")
   while (currHeight < maxHeight) {
     // Scroll to the bottom of the page
-    await page.evaluate(`window.scrollTo(0, ${currHeight})`);
+    await page.evaluate(`window.scrollTo(0, ${currHeight})`)
     // Wait for page load
-    await delay(100);
+    await delay(200)
 
-    currHeight += 500;
-    maxHeight = await page.evaluate("document.body.scrollHeight");
+    currHeight += 500
+    maxHeight = await page.evaluate("document.body.scrollHeight")
     // Calculate new scroll height and compare
   }
-};
+}
 
 export const addToJSONFile = (path, content) => {
   try {
-    Logger.level(1).log("Phase 3️⃣ - Writing on local file.");
+    Logger.level(1).log("Phase 3️⃣ - Writing on local file.")
 
-    let prev = JSON.parse(readFileSync(path, "utf-8"));
+    let prev = JSON.parse(readFileSync(path, "utf-8"))
     let counter = {
       added: 0,
       notAdded: 0,
-    };
+    }
     if (content.length) {
       content.forEach((c) => {
-        const found = prev.find(p => (p.prodName === c.prodName) && (p.store === c.store))
+        const found = prev.find(
+          (p) => p.prodName === c.prodName && p.store === c.store
+        )
         if (!found) {
-          Logger.debug("Added product with name:" + c.prodName);
-          counter.added++;
-          prev.push(c);
+          Logger.debug("Added product with name:" + c.prodName)
+          counter.added++
+          prev.push(c)
         } else {
-          Logger.debug("Skipped product with name: " + c.prodName);
-          counter.notAdded++;
+          Logger.debug("Skipped product with name: " + c.prodName)
+          counter.notAdded++
         }
-      });
+      })
     } else {
-      const prodNames = prev.map((el) => el.prodName);
+      const prodNames = prev.map((el) => el.prodName)
       if (!prodNames.includes(content.prodName)) {
-        counter.added++;
-        Logger.level(1).debug("Added product with name: " + content.prodName);
-        prev.push(content);
+        counter.added++
+        Logger.level(1).debug("Added product with name: " + content.prodName)
+        prev.push(content)
       } else {
-        counter.notAdded++;
-        Logger.level(1).debug("Skipped product with name: " + content.prodName);
+        counter.notAdded++
+        Logger.level(1).debug(
+          "Skipped product with name: " +
+            content.prodName +
+            " for reason: already present"
+        )
       }
     }
     Logger.level(1).log(
       `Added ${counter.added} products, skipped ${counter.notAdded}. - Total products: ${prev.length}`
-    );
-    writeFileSync(path, JSON.stringify(prev));
-    return prev;
+    )
+    writeFileSync(path, JSON.stringify(prev))
+    return prev
   } catch (error) {
-    Logger.level(1).error(error);
+    Logger.level(1).error(error)
   }
-};
+}

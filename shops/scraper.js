@@ -22,10 +22,10 @@ const __dirname = import.meta.dirname
 
 /* 
 
-  TODO: figure out why carrefour is giving lots of empty images 
-  TODO: fix esselunga + carrefour repeated scraping (proably from "shop more" buttons)
+  // TODO: figure out why carrefour is giving lots of empty images 
+  // TODO: fix esselunga repeated scraping (proably from "shop more" buttons)
   TODO: make basko easier, cleaner and lighter
-  // TODO: schedule scraping based on store
+  
   TODO: IPERCOOP
   TODO: PENNY con volantino non offerte
 
@@ -41,7 +41,7 @@ export class Scraper {
     Logger.level(1).log("Phase 1️⃣ - Navigating browser")
 
     const browser = await puppeteer.launch({
-      // headless: false,
+      headless: false,
       // args: ["--start-maximized"],
     })
     this.browser = browser
@@ -270,18 +270,21 @@ export class Scraper {
 
       await delay(3000)
       await scrollToBottom(page)
+      // Seleziona tutti i volantini in cima alla pagina
       const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
       for (let i = 1; i <= volantini.length; i++) {
-        const volantino = await page.$(
-          `.glide__slide:not(li .promoclick):has(.card):nth-of-type(${i})`
+        const volantino = await volantini[i - 1].$eval(
+          `a.trackingEventsLink`,
+          ({ href }) => href
         )
         if (!volantino) continue
-        await volantino.scrollIntoView()
-        await volantino.click()
-        await delay(3000)
+        // await volantino.scrollIntoView()
+        // await volantino.click()
+        // await delay(3000)
+        const curr = await browser.newPage()
+        await curr.goto(volantino)
         Logger.level(1).log("Phase 2️⃣ - Scraping")
-
-        await scrape(page)
+        await scrape(curr, "carrefour-express")
       }
       await browser.close()
     } catch (error) {
@@ -301,15 +304,18 @@ export class Scraper {
 
       const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
       for (let i = 1; i <= volantini.length; i++) {
-        const volantino = await page.$(
-          `.glide__slide:not(li .promoclick):has(.card):nth-of-type(${i})`
+        const volantino = await volantini[i - 1].$eval(
+          `a.trackingEventsLink`,
+          ({ href }) => href
         )
         if (!volantino) continue
-        await volantino.scrollIntoView()
-        await volantino.click()
-        await delay(3000)
+        // await volantino.scrollIntoView()
+        // await volantino.click()
+        // await delay(3000)
+        const curr = await browser.newPage()
+        await curr.goto(volantino)
         Logger.level(1).log("Phase 2️⃣ - Scraping")
-        await scrape(page)
+        await scrape(curr, "carrefour-market")
       }
       await browser.close()
     } catch (error) {
@@ -328,7 +334,7 @@ export class Scraper {
       )
 
       await delay(1000)
-
+      // Seleziona tutti i volantini e li apre uno per uno
       const flyers = await page.$$(".single-flyer")
       let prds = []
       for (const flyer of flyers) {
@@ -336,7 +342,6 @@ export class Scraper {
           ".btn-blue-primary.flyer-btn",
           ({ href }) => href
         )
-
         const currPage = await browser.newPage()
 
         await currPage.goto(btn)
@@ -346,21 +351,7 @@ export class Scraper {
           ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
         )
         Logger.level(1).log("Phase 2️⃣ - Scraping")
-        const newPrds = await scrapeVolantino(currPage)
-        if (newPrds.length && newPrds.length > 0) {
-          prds = [...prds, ...newPrds]
-        } else {
-          Logger.error("scraper.js:335 || newPrds is not an array.")
-          Logger.error(newPrds)
-        }
-        await currPage.goto(
-          "https://www.esselunga.it/it-it/promozioni/volantini.ben.html"
-        )
-        await this.acceptCookies(
-          page,
-          ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
-        )
-        addToJSONFile(path.resolve(__dirname, "db.json"), prds)
+        await scrapeVolantino(currPage)
       }
 
       await browser.close()
@@ -423,11 +414,9 @@ export class Scraper {
       const data = []
       for (const folder of folders) {
         images = await uploadImages(folder, baskoPath)
-        // console.log(images)
         Logger.level(2).log("Performing OCR")
 
         for (const { secure_url: img } of images) {
-          // console.log(img)
           const ret = await worker.recognize(img)
           // const ret = await worker.recognize("https://res.cloudinary.com/dhbeeld3u/image/upload/v1710881864/shopping/nqu74kpqq2s7wmiuilf9.jpg");
           const prodName = ret.data.words.map((w) => w.text).join(" ")
@@ -468,7 +457,7 @@ export class Scraper {
       await this.scrapeEsselunga()
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
       Logger.log("Scraping Pam: ")
-      // 
+      //
       await this.scrapePam()
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
       Logger.log("Scraping Penny: ")
