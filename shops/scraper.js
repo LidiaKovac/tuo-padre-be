@@ -1,7 +1,7 @@
 import { writeFileSync } from "fs"
 import puppeteer from "puppeteer"
 import { v2 as cloudinary } from "cloudinary"
-
+import config from "../scraper.config.json" assert { type: "json" }
 import {
   addToJSONFile,
   configCloudinary,
@@ -25,7 +25,7 @@ const __dirname = import.meta.dirname
   // TODO: figure out why carrefour is giving lots of empty images 
   // TODO: fix esselunga repeated scraping (proably from "shop more" buttons)
   TODO: make basko easier, cleaner and lighter
-  
+
   TODO: IPERCOOP
   TODO: PENNY con volantino non offerte
 
@@ -41,8 +41,8 @@ export class Scraper {
     Logger.level(1).log("Phase 1️⃣ - Navigating browser")
 
     const browser = await puppeteer.launch({
-      headless: false,
-      // args: ["--start-maximized"],
+      headless: config.headless,
+      args: ["--start-maximized"],
     })
     this.browser = browser
     const page = await browser.newPage()
@@ -64,6 +64,7 @@ export class Scraper {
       if (hasCookie) {
         const cookie = await page.waitForSelector(selector)
         await cookie.click()
+        Logger.debug("Cookies acceptes")
       }
     } catch (error) {
       Logger.error("   Error accepting cookies: " + error)
@@ -72,11 +73,15 @@ export class Scraper {
   //   Common to more shops
   static async scrapeVolantinoPiu({ page, shopName }) {
     try {
-      await page.reload()
-
       // Wait and click on first result
+      await this.acceptCookies(
+        page,
+        "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+      )
       await delay(3000)
-      const button = await page.waitForSelector(".esplodi", { visible: true })
+
+      await page.waitForSelector("li.esplodi")
+      const button = await page.$("li.esplodi")
       await button.click()
       await page.waitForSelector(".card")
       const cards = await page.$$(".card")
@@ -158,6 +163,47 @@ export class Scraper {
         page,
         shopName: "coop",
       })
+      await browser.close()
+    } catch (error) {
+      Logger.error(error)
+    }
+  }
+  static async scrapeIperCoop() {
+    try {
+      // Launch the browser and open a new blank page
+      const { page, browser } = await this.launchBrowser(
+        "https://coopliguria.promoipercoop.it",
+        ""
+      )
+      this.acceptCookies(
+        page,
+        "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+      )
+      await page.type(".swal2-input", "genova")
+
+      await delay(1000)
+      await page.keyboard.press("Enter")
+      // const sub = await page.$("button#submit")
+      // await sub.scrollIntoView()
+      // await sub.click()
+      const shop = await page.waitForSelector(
+        ".list-menu .item:has(img[src*='Ipercoop'])"
+      )
+      await shop.click()
+      // Type into search box
+      await delay(3000)
+      Logger.level(1).log("Phase 2️⃣ - Scraping")
+      const flyers = await page.$$(".swiper-slide")
+      for (const flyer of flyers) {
+        const href = await flyer.$eval("a", ({ href }) => href)
+        const {page: curr} = await this.launchBrowser(href, "")
+        await curr.goto(href)
+
+        await this.scrapeVolantinoPiu({
+          page: curr,
+          shopName: "ipercoop",
+        })
+      }
       await browser.close()
     } catch (error) {
       Logger.error(error)
@@ -451,6 +497,10 @@ export class Scraper {
       Logger.log("Scraping COOP: ")
       // Giovedi'
       await this.scrapeCoop()
+      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
+      Logger.log("Scraping IperCOOP: ")
+      // Giovedi'
+      await this.scrapeIperCoop()
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
       Logger.log("Scraping Esselunga: ")
       // Lunedi' / 2 sett
