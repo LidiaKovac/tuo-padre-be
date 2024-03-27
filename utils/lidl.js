@@ -1,4 +1,4 @@
-import { addToJSONFile, scrollToBottom } from "./index.js"
+import { addToMongo, scrollToBottom } from "./index.js"
 import { Logger } from "../shops/logger.js"
 
 export const scrapeCategory = async (page) => {
@@ -15,8 +15,9 @@ export const scrapeCategory = async (page) => {
       let prodQuantity = null
       let needsCard = false
       let scadenza = null
-
-      await page.waitForSelector(".product-grid-box ")
+      const nav = await page.$("nav")
+      await nav.scrollIntoView()
+      await page.waitForSelector(".product-grid-box")
       await card.waitForSelector(".product-grid-box__image")
       img = await card.$eval(".product-grid-box__image", ({ src }) => src)
       price = await card.$eval(".m-price__price--small", (el) => el.innerText)
@@ -53,7 +54,7 @@ export const scrapeCategory = async (page) => {
       })
     }
 
-    addToJSONFile("./shops/data.json", prodotti)
+    addToMongo(prodotti)
   } catch (error) {
     Logger.error(error)
   }

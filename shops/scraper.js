@@ -3,7 +3,7 @@ import puppeteer from "puppeteer"
 import { v2 as cloudinary } from "cloudinary"
 import config from "../scraper.config.json" assert { type: "json" }
 import {
-  addToJSONFile,
+  addToMongo,
   configCloudinary,
   delay,
   scrollToBottom,
@@ -131,7 +131,7 @@ export class Scraper {
         })
       }
 
-      addToJSONFile(path.resolve(__dirname, "data.json"), prodotti)
+      await addToMongo(prodotti)
     } catch (error) {
       Logger.error(error)
     }
@@ -386,49 +386,7 @@ export class Scraper {
 
       await delay(5000)
 
-      // const prodotti = []
-      // for (const card of cards) {
-      //   let img = null
-      //   let price = null
-      //   let prodName = null
-      //   let prodQuantity = null
-      //   let needsCard = false
-      //   let scadenza = null
-      //   img = await card.$eval("img", ({ src }) => src)
-      //   await card.waitForSelector(".ws-product-tile__info")
-      //   const infoArea = await card.$(".ws-product-tile__info")
-      //   const priceEl = await infoArea.$(".ws-product-price-type__value")
-      //   if (priceEl) {
-      //     price = await infoArea.$eval(
-      //       ".ws-product-price-type__value",
-      //       (el) => el.innerText
-      //     )
-      //   }
-      //   prodName = await infoArea.$eval("h3 span", ({ innerText }) => innerText)
-      //   prodQuantity = await infoArea.$eval(
-      //     ".ws-product-information ul li",
-      //     ({ innerText }) => innerText
-      //   )
-      //   needsCard = (await card.$(
-      //     ".ws-product-tile-container__discount-info img"
-      //   ))
-      //     ? true
-      //     : false
-      //   scadenza = await infoArea.$eval(
-      //     ".ws-product-price-validity span:last-of-type",
-      //     ({ innerText }) => innerText.slice(-10)
-      //   )
-      //   prodotti.push({
-      //     img,
-      //     price,
-      //     prodName,
-      //     prodQuantity,
-      //     store: "penny",
-      //     needsCard,
-      //     scadenza,
-      //   })
-      // }
-      addToJSONFile(path.resolve(__dirname, "data.json"), products)
+      await addToMongo(products)
       await browser.close()
     } catch (error) {
       Logger.error(error)
@@ -511,8 +469,8 @@ export class Scraper {
       await delay(1000)
       // Seleziona tutti i volantini e li apre uno per uno
       const flyers = await page.$$(".single-flyer")
-      let prds = []
-      for (const flyer of flyers) {
+      for (let i = 0; i < flyers.length; i++) {
+        const flyer = await page.$(`.single-flyer:nth-of-type(${i + 1})`)
         const btn = await flyer.$eval(
           ".btn-blue-primary.flyer-btn",
           ({ href }) => href
@@ -602,7 +560,7 @@ export class Scraper {
           }
           data.push(final)
         }
-        await addToJSONFile(path.resolve(__dirname, "data.json"), data)
+        await await addToMongo(data)
       }
       await worker.terminate()
       await cleanup(baskoPath)

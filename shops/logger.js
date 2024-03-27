@@ -21,10 +21,12 @@ export class Logger {
         msg,
         reset: `\x1b[0m`,
       }
-        const logFile = readFileSync("log.txt")
-        writeFileSync("log.txt", `${logFile}\n${res.prefix} ${res.msg}`)
+      const logFile = readFileSync("log.txt")
+      writeFileSync("log.txt", `${logFile}\n${res.prefix.split("[")[2]} ${res.msg}`)
       return res
     } else {
+      writeFileSync("log.txt", `${logFile}\n${res.prefix.split("[")[2]} ${res.msg}`)
+
       this.tabLvl = 0
       return
     }
