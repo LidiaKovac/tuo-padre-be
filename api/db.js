@@ -6,7 +6,7 @@ export class Database {
   data = [];
   constructor() {
     const __dirname = import.meta.dirname
-    const file = readFileSync(path.resolve(__dirname, "..", "shops", "data.json"), "utf-8");
+    const file = readFileSync(path.resolve(__dirname, "..", "shops", "db.json"), "utf-8");
     this.data = JSON.parse(file);
   }
   findById(id) {
