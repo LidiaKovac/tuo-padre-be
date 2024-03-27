@@ -8,7 +8,7 @@ export const expandAll = async (page) => {
       ".load-more-products-btn:not([style])"
     )
     while (hasClickableButton) {
-      await delay(100)
+      await delay(200)
       hasClickableButton = await page.$(".load-more-products-btn:not([style])")
       if (!hasClickableButton) break
 
@@ -55,6 +55,8 @@ export const scrapeVolantino = async (page) => {
           )
       }
       if (!price) continue
+      await delay(300)
+      if (!(await card.$(".card-top p"))) continue
       prodName = await card.$eval(".card-top p", ({ innerText }) => innerText)
 
       needsCard = (await card.$(".fidaty")) ? true : false
@@ -73,7 +75,7 @@ export const scrapeVolantino = async (page) => {
       })
     }
     const __dirname = import.meta.dirname
-    addToJSONFile(path.resolve(__dirname, "..", "shops","db.json"), prodotti)
+    addToJSONFile(path.resolve(__dirname, "..", "shops", "data.json"), prodotti)
     // await delay(10000)
   } catch (error) {
     Logger.error(error)

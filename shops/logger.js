@@ -21,10 +21,8 @@ export class Logger {
         msg,
         reset: `\x1b[0m`,
       }
-      if (config.persistent) {
         const logFile = readFileSync("log.txt")
         writeFileSync("log.txt", `${logFile}\n${res.prefix} ${res.msg}`)
-      }
       return res
     } else {
       this.tabLvl = 0

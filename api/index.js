@@ -30,7 +30,7 @@ cron.schedule("00 8 * * *", async () => {
     Logger.log("Running every day @ 8AM")
     await Scraper.scrapeAll()
     // await connectToDB()
-    const { default: db } = await import("../shops/db.json", {
+    const { default: db } = await import("../shops/data.json", {
       assert: {
         type: "json",
       },
@@ -44,7 +44,7 @@ cron.schedule("00 8 * * *", async () => {
     }
     Logger.log("Saved in MongoDB")
     writeFileSync(
-      path.resolve(import.meta.dirname, "..", "shops", "db.json"),
+      path.resolve(import.meta.dirname, "..", "shops", "data.json"),
       "[]"
     )
   } catch (error) {

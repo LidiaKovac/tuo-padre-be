@@ -5,9 +5,13 @@ import { Scraper } from "./scraper.js"
 import path from "path"
 import { connectToDB } from "../api/configs/mongo.config.js"
 try {
+  writeFileSync(
+    path.resolve(import.meta.dirname, "..", "shops", "data.json"),
+    "[]"
+  )
   await Scraper.scrapeAll()
   await connectToDB()
-  const { default: db } = await import("./db.json", {
+  const { default: db } = await import("./data.json", {
     assert: {
       type: "json",
     },
@@ -21,7 +25,7 @@ try {
   }
   Logger.log("Saved in MongoDB")
   writeFileSync(
-    path.resolve(import.meta.dirname, "..", "shops", "db.json"),
+    path.resolve(import.meta.dirname, "..", "shops", "data.json"),
     "[]"
   )
 } catch (error) {

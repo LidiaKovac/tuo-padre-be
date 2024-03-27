@@ -65,16 +65,19 @@ export const scrape = async (page, store) => {
     await expand(page)
     await page.waitForSelector(".product")
     const cards = await page.$$(".product")
-
-    const scadenza = await page.$eval(
-      ".js-flyer-end",
-      ({ innerText }) => `${innerText}/${new Date().getFullYear()}`
-    )
-
+   
+    let hasScadenza = await page.$(".js-flyer-end")
+    let scadenza = null
+    if (hasScadenza) {
+      scadenza = await page.$eval(
+        ".js-flyer-end",
+        ({ innerText }) => `${innerText}/${new Date().getFullYear()}`
+      )
+    }
     const pageProds = await scrapeCards(cards, scadenza, store)
     prodotti = [...prodotti, ...pageProds]
 
-    addToJSONFile("./shops/db.json", prodotti)
+    addToJSONFile("./shops/data.json", prodotti)
   } catch (error) {
     Logger.error(error)
   }

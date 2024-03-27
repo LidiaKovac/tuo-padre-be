@@ -15,8 +15,9 @@ import { scrapeVolantino } from "../utils/esselunga.js"
 import { scrapeCategory } from "../utils/lidl.js"
 import path from "path"
 import { cleanup, uploadImages, upscaleAndCrop } from "../utils/basko.js"
-import { readdir } from "fs/promises"
+import { readdir, writeFile } from "fs/promises"
 import { createWorker } from "tesseract.js"
+import sharp from "sharp"
 
 const __dirname = import.meta.dirname
 
@@ -26,7 +27,7 @@ const __dirname = import.meta.dirname
   // TODO: fix esselunga repeated scraping (proably from "shop more" buttons)
   TODO: make basko easier, cleaner and lighter
 
-  TODO: IPERCOOP
+  // TODO: IPERCOOP
   TODO: PENNY con volantino non offerte
 
   TODO: deploy as a background process
@@ -35,19 +36,19 @@ const __dirname = import.meta.dirname
 */
 
 export class Scraper {
-  browser
+  static browsers = []
   //   General
   static async launchBrowser(baseUrl, endpoint) {
     Logger.level(1).log("Phase 1️⃣ - Navigating browser")
 
     const browser = await puppeteer.launch({
       headless: config.headless,
-      args: ["--start-maximized"],
+      args: ["--start-maximized", `--window-size=1466,1200`],
     })
-    this.browser = browser
+    this.browsers.push(browser)
     const page = await browser.newPage()
 
-    await page.setViewport({ width: 1366, height: 768 })
+    await page.setViewport({ width: 1466, height: 1200 })
     const context = browser.defaultBrowserContext()
     await context.overridePermissions(baseUrl, ["geolocation"])
     // Navigate the page to a URL
@@ -130,7 +131,7 @@ export class Scraper {
         })
       }
 
-      addToJSONFile(path.resolve(__dirname, "db.json"), prodotti)
+      addToJSONFile(path.resolve(__dirname, "data.json"), prodotti)
     } catch (error) {
       Logger.error(error)
     }
@@ -196,7 +197,7 @@ export class Scraper {
       const flyers = await page.$$(".swiper-slide")
       for (const flyer of flyers) {
         const href = await flyer.$eval("a", ({ href }) => href)
-        const {page: curr} = await this.launchBrowser(href, "")
+        const { page: curr } = await this.launchBrowser(href, "")
         await curr.goto(href)
 
         await this.scrapeVolantinoPiu({
@@ -247,59 +248,187 @@ export class Scraper {
       // Launch the browser and open a new blank page
       const { page, browser } = await this.launchBrowser(
         "https://www.penny.it/",
-        "offerte"
+        "sfoglia-il-volantino-mobile"
       )
-
+      // https://www.penny.it/sfoglia-il-volantino-mobile
       await this.acceptCookies(page, "#onetrust-accept-btn-handler")
-      await delay(3000)
-      await page.waitForSelector(".ws-product-grid__list li.ws-card")
-      const cards = await page.$$(".ws-product-grid__list li.ws-card")
+      // await page.waitForSelector(".ws-product-grid__list li.ws-card")
+      // const cards = await page.$$(".ws-product-grid__list li.ws-card")
 
-      Logger.level(1).log("Phase 2️⃣ - Scraping")
+      await delay(1000)
+      const extIframe = await page.$("iframe")
+      const frame = await extIframe.contentFrame()
 
-      const prodotti = []
-      for (const card of cards) {
-        let img = null
-        let price = null
-        let prodName = null
-        let prodQuantity = null
-        let needsCard = false
-        let scadenza = null
-        img = await card.$eval("img", ({ src }) => src)
-        await card.waitForSelector(".ws-product-tile__info")
-        const infoArea = await card.$(".ws-product-tile__info")
-        const priceEl = await infoArea.$(".ws-product-price-type__value")
-        if (priceEl) {
-          price = await infoArea.$eval(
-            ".ws-product-price-type__value",
-            (el) => el.innerText
+      const intIframe = await frame.$eval("iframe", ({ src }) => src)
+      const flyerPage = await browser.newPage()
+      await flyerPage.setViewport({ width: 1466, height: 1200 })
+      await flyerPage.goto(intIframe)
+
+      await delay(500)
+      const input = await flyerPage.$("input.MuiInputBase-input")
+
+      await input.click({ count: 3 })
+      await flyerPage.keyboard.press("Backspace")
+      await input.type("Genova, Italia")
+      await delay(500)
+      const option = await flyerPage.$(".MuiList-root li")
+      await option.click()
+      await delay(500)
+      const flyers = await flyerPage.$$(".MuiGrid-container a")
+      const products = []
+      const scadenza = await flyerPage.$eval(
+        ".MuiTypography-root.MuiTypography-caption",
+        ({ innerText }) => innerText
+      )
+      for (let i = 0; i < flyers.length; i++) {
+        const flyer = await flyerPage.$(
+          `.MuiGrid-container a:nth-of-type(${i + 1})`
+        )
+        if (!flyer) continue
+        await flyer.click()
+        await delay(1000)
+
+        if (await flyerPage.$("iframe")) {
+          console.log("Modal detected")
+          const closeBtn2 = await flyerPage.$(
+            "a[href*='flyers'] .MuiButtonBase-root.MuiIconButton-root"
           )
+          await closeBtn2.click()
+          await delay(1000)
+          continue
         }
-        prodName = await infoArea.$eval("h3 span", ({ innerText }) => innerText)
-        prodQuantity = await infoArea.$eval(
-          ".ws-product-information ul li",
-          ({ innerText }) => innerText
+        if (
+          !(await flyerPage.$(".swiper-slide .css-d0y89f-EnrichmentWrapper"))
+        ) {
+          const nextBtn = await flyerPage.$(".css-8svldw-ArrowRightWrapper")
+          await nextBtn.click()
+          await delay(500)
+        }
+        const firstEl = await flyerPage.waitForSelector(".e176sqtz2")
+        await firstEl.click()
+        await delay(500)
+
+        const listBtn = await flyerPage.$(
+          ".MuiButtonBase-root.MuiButton-root.MuiButton-text"
         )
-        needsCard = (await card.$(
-          ".ws-product-tile-container__discount-info img"
-        ))
-          ? true
-          : false
-        scadenza = await infoArea.$eval(
-          ".ws-product-price-validity span:last-of-type",
-          ({ innerText }) => innerText.slice(-10)
+        await listBtn.click()
+        await delay(1000)
+        const height = await flyerPage.evaluate((page) =>
+          parseInt(
+            window
+              .getComputedStyle(
+                document.querySelector(
+                  ".MuiGrid-root.MuiGrid-container.MuiGrid-spacing-xs-2"
+                )
+              )
+              .getPropertyValue("height")
+              .replaceAll("px", "")
+          )
         )
-        prodotti.push({
-          img,
-          price,
-          prodName,
-          prodQuantity,
-          store: "penny",
-          needsCard,
-          scadenza,
-        })
+        for (let i = 0; i < 100; i++) {
+          await flyerPage.mouse.wheel({ deltaY: height / 100 })
+          // await delay(50)
+        }
+        const cards = await flyerPage.$$(".MuiGrid-item")
+        Logger.level(1).log("Phase 2️⃣ - Scraping")
+
+        for (const card of cards) {
+          await card.scrollIntoView()
+          let img
+          if (!(await card.$("img"))) {
+            img = "http://placehold.it/300"
+          } else {
+            img = await card.$eval("img", ({ src }) => src)
+          }
+          const prodName = await card.$eval("h6", ({ innerText }) => innerText)
+
+          const price = await card.$eval(
+            "p.MuiTypography-body1:last-of-type",
+            ({ innerText }) => innerText
+          )
+          const prodQuantity = null
+          let worker = await createWorker("ita_old")
+          const res = await fetch(img)
+          const inputBuff = await res.arrayBuffer()
+          const imgBuff = await sharp(inputBuff)
+            // .rotate(-5)
+            .resize({ width: 500 })
+            .toBuffer()
+          const ret = await worker.recognize(imgBuff)
+          await worker.terminate()
+
+          const needsCard = ret.data.text.toLowerCase().includes("card")
+          products.push({
+            img,
+            price,
+            prodName,
+            prodQuantity,
+            store: "penny",
+            needsCard,
+            scadenza,
+          })
+        }
+        for (let i = 0; i < 100; i++) {
+          await flyerPage.mouse.wheel({ deltaY: (height / 100) * -1 })
+          // await delay(50)
+        }
+        const closeBtn = await flyerPage.$(
+          "h6 ~ a .MuiButtonBase-root.MuiIconButton-root"
+        )
+        await closeBtn.click()
+        await delay(1000)
+        const closeBtn2 = await flyerPage.$(
+          "a[href*='flyers'] .MuiButtonBase-root.MuiIconButton-root"
+        )
+        await closeBtn2.click()
+        await delay(1000)
       }
-      addToJSONFile(path.resolve(__dirname, "db.json"), prodotti)
+
+      await delay(5000)
+
+      // const prodotti = []
+      // for (const card of cards) {
+      //   let img = null
+      //   let price = null
+      //   let prodName = null
+      //   let prodQuantity = null
+      //   let needsCard = false
+      //   let scadenza = null
+      //   img = await card.$eval("img", ({ src }) => src)
+      //   await card.waitForSelector(".ws-product-tile__info")
+      //   const infoArea = await card.$(".ws-product-tile__info")
+      //   const priceEl = await infoArea.$(".ws-product-price-type__value")
+      //   if (priceEl) {
+      //     price = await infoArea.$eval(
+      //       ".ws-product-price-type__value",
+      //       (el) => el.innerText
+      //     )
+      //   }
+      //   prodName = await infoArea.$eval("h3 span", ({ innerText }) => innerText)
+      //   prodQuantity = await infoArea.$eval(
+      //     ".ws-product-information ul li",
+      //     ({ innerText }) => innerText
+      //   )
+      //   needsCard = (await card.$(
+      //     ".ws-product-tile-container__discount-info img"
+      //   ))
+      //     ? true
+      //     : false
+      //   scadenza = await infoArea.$eval(
+      //     ".ws-product-price-validity span:last-of-type",
+      //     ({ innerText }) => innerText.slice(-10)
+      //   )
+      //   prodotti.push({
+      //     img,
+      //     price,
+      //     prodName,
+      //     prodQuantity,
+      //     store: "penny",
+      //     needsCard,
+      //     scadenza,
+      //   })
+      // }
+      addToJSONFile(path.resolve(__dirname, "data.json"), products)
       await browser.close()
     } catch (error) {
       Logger.error(error)
@@ -440,7 +569,7 @@ export class Scraper {
     }
   }
   static async scrapeBasko() {
-    let worker
+    let worker = await createWorker("ita_old")
     try {
       Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files")
 
@@ -456,7 +585,7 @@ export class Scraper {
       let images = []
       const folders = await readdir(path.resolve(baskoPath, "parts"))
       Logger.level(1).log("Phase 3️⃣ - Uploading images")
-      worker = await createWorker("ita_old")
+
       const data = []
       for (const folder of folders) {
         images = await uploadImages(folder, baskoPath)
@@ -473,7 +602,7 @@ export class Scraper {
           }
           data.push(final)
         }
-        await addToJSONFile(path.resolve(__dirname, "db.json"), data)
+        await addToJSONFile(path.resolve(__dirname, "data.json"), data)
       }
       await worker.terminate()
       await cleanup(baskoPath)
@@ -485,7 +614,7 @@ export class Scraper {
   }
   static async scrapeAll() {
     try {
-      writeFileSync(path.resolve(__dirname, "db.json"), "[]")
+      await writeFile(path.join(import.meta.dirname, "./data.json"), "[]")
       Logger.log("Scraping has started...")
       const startTime = new Date()
       Logger.log("Scraping Carrefour Express: ")
@@ -523,9 +652,10 @@ export class Scraper {
       await this.scrapeBasko()
       Logger.log("Scraping has ended.")
       Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      this.browser.close()
+      this.browsers.forEach((b) => b.close())
     } catch (error) {
       Logger.error(error)
+      this.browsers.forEach((b) => b.close())
     }
   }
 }
