@@ -1,5 +1,5 @@
 import { Logger } from "../shops/logger.js"
-import { addToMongo, delay, scrollToBottom } from "./index.js"
+import { addToJSONFile, delay, scrollToBottom } from "./index.js"
 import path from "path"
 export const expandAll = async (page) => {
   try {
@@ -8,10 +8,10 @@ export const expandAll = async (page) => {
       ".load-more-products-btn:not([style])"
     )
     while (hasClickableButton) {
-      await delay(200)
+      await delay(100)
       hasClickableButton = await page.$(".load-more-products-btn:not([style])")
       if (!hasClickableButton) break
-await delay(300)
+
       await hasClickableButton.scrollIntoView()
       await hasClickableButton.click()
       await footer.scrollIntoView()
@@ -30,10 +30,9 @@ export const scrapeVolantino = async (page) => {
   try {
     await Promise.all([scrollToBottom(page), expandAll(page)])
     //   expands all
-    Logger.debug("Scrolling and expansion over")
+
     const cards = await page.$$(".card-item")
     //   const cards =
-    console.log(cards.length)
     const prodotti = []
     for (const card of cards) {
       let img = null
@@ -55,19 +54,14 @@ export const scrapeVolantino = async (page) => {
             ({ innerText }) => innerText
           )
       }
-
       if (!price) continue
-      await delay(300)
-      if (!(await card.$(".card-top h3"))) continue
-      prodName = await card.$eval(".card-top h3", ({ innerText }) => innerText)
+      prodName = await card.$eval(".card-top p", ({ innerText }) => innerText)
 
       needsCard = (await card.$(".fidaty")) ? true : false
       scadenza = await page.$eval(
         ".selected-flyer-text-info .date-container",
         ({ innerText }) => innerText
       )
-      Logger.debug("Adding product: " + prodName)
-
       prodotti.push({
         img,
         price,
@@ -78,9 +72,9 @@ export const scrapeVolantino = async (page) => {
         scadenza,
       })
     }
-    await addToMongo(prodotti)
+    const __dirname = import.meta.dirname
+    addToJSONFile(path.resolve(__dirname, "..", "shops","db.json"), prodotti)
     // await delay(10000)
-    return
   } catch (error) {
     Logger.error(error)
   }

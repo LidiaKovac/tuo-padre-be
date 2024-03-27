@@ -1,3 +1,3 @@
 {   
-    "ignore": ["shops/*", "utils/basko.js", "utils/esselunga.js", "utils/lidl.js", "utils/carrefour.js", "scraper.config.json"] 
+    "ignore": ["shops/*"] 
 }
