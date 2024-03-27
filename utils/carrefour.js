@@ -1,5 +1,5 @@
 import { Logger } from "../shops/logger.js"
-import { addToJSONFile, delay, scrollToBottom } from "./index.js"
+import { addToMongo, delay, scrollToBottom } from "./index.js"
 
 export const scrapeCards = async (cards, scadenza, store) => {
   const prods = []
@@ -74,7 +74,7 @@ export const scrape = async (page, store) => {
     const pageProds = await scrapeCards(cards, scadenza, store)
     prodotti = [...prodotti, ...pageProds]
 
-    addToJSONFile("./shops/db.json", prodotti)
+    addToMongo(prodotti)
   } catch (error) {
     Logger.error(error)
   }

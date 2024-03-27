@@ -3,7 +3,7 @@ import puppeteer from "puppeteer"
 import { v2 as cloudinary } from "cloudinary"
 import config from "../scraper.config.json" assert { type: "json" }
 import {
-  addToJSONFile,
+  addToMongo,
   configCloudinary,
   delay,
   scrollToBottom,
@@ -130,7 +130,7 @@ export class Scraper {
         })
       }
 
-      addToJSONFile(path.resolve(__dirname, "db.json"), prodotti)
+      await addToMongo(prodotti)
     } catch (error) {
       Logger.error(error)
     }
@@ -299,7 +299,10 @@ export class Scraper {
           scadenza,
         })
       }
-      addToJSONFile(path.resolve(__dirname, "db.json"), prodotti)
+
+      await delay(5000)
+
+      await addToMongo(products)
       await browser.close()
     } catch (error) {
       Logger.error(error)
@@ -382,8 +385,8 @@ export class Scraper {
       await delay(1000)
       // Seleziona tutti i volantini e li apre uno per uno
       const flyers = await page.$$(".single-flyer")
-      let prds = []
-      for (const flyer of flyers) {
+      for (let i = 0; i < flyers.length; i++) {
+        const flyer = await page.$(`.single-flyer:nth-of-type(${i + 1})`)
         const btn = await flyer.$eval(
           ".btn-blue-primary.flyer-btn",
           ({ href }) => href
@@ -473,7 +476,7 @@ export class Scraper {
           }
           data.push(final)
         }
-        await addToJSONFile(path.resolve(__dirname, "db.json"), data)
+        await addToMongo(data)
       }
       await worker.terminate()
       await cleanup(baskoPath)

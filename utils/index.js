@@ -3,6 +3,9 @@ import { Logger } from "../shops/logger.js"
 import { v2 as cloudinary } from "cloudinary"
 import { readdir, unlink } from "fs/promises"
 import path from "path"
+import { connectToDB } from "../api/configs/mongo.config.js"
+import Product from "../api/schemas/product.schema.js"
+import mongoose from "mongoose"
 
 export const configCloudinary = () =>
   cloudinary.config({
@@ -34,40 +37,44 @@ export const scrollToBottom = async (page) => {
     // Wait for page load
     await delay(200)
 
-    currHeight += 500
+    currHeight += maxHeight/100
     maxHeight = await page.evaluate("document.body.scrollHeight")
     // Calculate new scroll height and compare
   }
 }
 
-export const addToJSONFile = (path, content) => {
+export const addToMongo = async (content) => {
   try {
-    Logger.level(1).log("Phase 3️⃣ - Writing on local file.")
-
-    let prev = JSON.parse(readFileSync(path, "utf-8"))
+    Logger.level(1).log("Phase 3️⃣ - Adding to MongoDB.")
+    await connectToDB()
+    let prev = await Product.find()
     let counter = {
       added: 0,
       notAdded: 0,
     }
     if (content.length) {
-      content.forEach((c) => {
+      for (const c of content) {
         const found = prev.find(
           (p) => p.prodName === c.prodName && p.store === c.store
         )
         if (!found) {
           Logger.debug("Added product with name:" + c.prodName)
           counter.added++
+          const newProd = new Product(c)
+          await newProd.save()
           prev.push(c)
         } else {
           Logger.debug("Skipped product with name: " + c.prodName)
           counter.notAdded++
         }
-      })
+      }
     } else {
       const prodNames = prev.map((el) => el.prodName)
       if (!prodNames.includes(content.prodName)) {
         counter.added++
         Logger.level(1).debug("Added product with name: " + content.prodName)
+        const newProd = new Product(content)
+        await newProd.save()
         prev.push(content)
       } else {
         counter.notAdded++
@@ -81,7 +88,7 @@ export const addToJSONFile = (path, content) => {
     Logger.level(1).log(
       `Added ${counter.added} products, skipped ${counter.notAdded}. - Total products: ${prev.length}`
     )
-    writeFileSync(path, JSON.stringify(prev))
+    await mongoose.disconnect()
     return prev
   } catch (error) {
     Logger.level(1).error(error)
