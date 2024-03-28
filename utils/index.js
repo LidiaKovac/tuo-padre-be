@@ -54,17 +54,20 @@ export const addToMongo = async (content) => {
     }
     if (content.length) {
       for (const c of content) {
+        if(!c.price) continue
+        c.price = parseFloat(c.price.split("").filter(l => !isNaN(l)).join(""))  || null
+        console.log("prezzo", c.price)
         const found = prev.find(
           (p) => p.prodName === c.prodName && p.store === c.store
         )
         if (!found) {
-          Logger.debug("Added product with name:" + c.prodName)
+          Logger.level(3).debug("Added product with name:" + c.prodName)
           counter.added++
           const newProd = new Product(c)
           await newProd.save()
           prev.push(c)
         } else {
-          Logger.debug("Skipped product with name: " + c.prodName)
+          Logger.level(3).debug("Skipped product with name: " + c.prodName)
           counter.notAdded++
         }
       }
@@ -73,6 +76,8 @@ export const addToMongo = async (content) => {
       if (!prodNames.includes(content.prodName)) {
         counter.added++
         Logger.level(1).debug("Added product with name: " + content.prodName)
+        console.log("prezzo", content.price)
+        content.price = parseFloat(content?.price?.replaceAll("€", "").replaceAll(" ", "").replaceAll(",", ".") || 0)  || null
         const newProd = new Product(content)
         await newProd.save()
         prev.push(content)

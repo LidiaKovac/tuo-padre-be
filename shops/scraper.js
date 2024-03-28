@@ -302,7 +302,7 @@ export class Scraper {
 
       await delay(5000)
 
-      await addToMongo(products)
+      await addToMongo(prodotti)
       await browser.close()
     } catch (error) {
       Logger.error(error)
@@ -387,6 +387,7 @@ export class Scraper {
       const flyers = await page.$$(".single-flyer")
       for (let i = 0; i < flyers.length; i++) {
         const flyer = await page.$(`.single-flyer:nth-of-type(${i + 1})`)
+        if(!flyer) continue
         const btn = await flyer.$eval(
           ".btn-blue-primary.flyer-btn",
           ({ href }) => href
@@ -443,7 +444,7 @@ export class Scraper {
     }
   }
   static async scrapeBasko() {
-    let worker
+    let worker = await createWorker("ita_old")
     try {
       Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files")
 
@@ -459,7 +460,7 @@ export class Scraper {
       let images = []
       const folders = await readdir(path.resolve(baskoPath, "parts"))
       Logger.level(1).log("Phase 3️⃣ - Uploading images")
-      worker = await createWorker("ita_old")
+      
       const data = []
       for (const folder of folders) {
         images = await uploadImages(folder, baskoPath)

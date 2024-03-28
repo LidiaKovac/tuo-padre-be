@@ -66,7 +66,6 @@ export const scrapeVolantino = async (page) => {
         ".selected-flyer-text-info .date-container",
         ({ innerText }) => innerText
       )
-      Logger.debug("Adding product: " + prodName)
 
       prodotti.push({
         img,
@@ -77,6 +76,7 @@ export const scrapeVolantino = async (page) => {
         needsCard,
         scadenza,
       })
+      console.log("PREZZO: ", price.split("").filter(l => !isNaN(l)).join(""))
     }
     await addToMongo(prodotti)
     // await delay(10000)
