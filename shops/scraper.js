@@ -26,8 +26,8 @@ const __dirname = import.meta.dirname
   // TODO: fix esselunga repeated scraping (proably from "shop more" buttons)
   TODO: make basko easier, cleaner and lighter
 
-  TODO: IPERCOOP
-  TODO: PENNY con volantino non offerte
+  // TODO: IPERCOOP
+  // TODO: PENNY con volantino non offerte
 
   TODO: deploy as a background process
   TODO: add autopush 
@@ -196,7 +196,7 @@ export class Scraper {
       const flyers = await page.$$(".swiper-slide")
       for (const flyer of flyers) {
         const href = await flyer.$eval("a", ({ href }) => href)
-        const {page: curr} = await this.launchBrowser(href, "")
+        const { page: curr } = await this.launchBrowser(href, "")
         await curr.goto(href)
 
         await this.scrapeVolantinoPiu({
@@ -387,7 +387,7 @@ export class Scraper {
       const flyers = await page.$$(".single-flyer")
       for (let i = 0; i < flyers.length; i++) {
         const flyer = await page.$(`.single-flyer:nth-of-type(${i + 1})`)
-        if(!flyer) continue
+        if (!flyer) continue
         const btn = await flyer.$eval(
           ".btn-blue-primary.flyer-btn",
           ({ href }) => href
@@ -460,15 +460,13 @@ export class Scraper {
       let images = []
       const folders = await readdir(path.resolve(baskoPath, "parts"))
       Logger.level(1).log("Phase 3️⃣ - Uploading images")
-      
+
       const data = []
       for (const folder of folders) {
         images = await uploadImages(folder, baskoPath)
         Logger.level(2).log("Performing OCR")
-
         for (const { secure_url: img } of images) {
           const ret = await worker.recognize(img)
-          // const ret = await worker.recognize("https://res.cloudinary.com/dhbeeld3u/image/upload/v1710881864/shopping/nqu74kpqq2s7wmiuilf9.jpg");
           const prodName = ret.data.words.map((w) => w.text).join(" ")
           const final = {
             store: "basko",
@@ -477,10 +475,10 @@ export class Scraper {
           }
           data.push(final)
         }
-        await addToMongo(data)
       }
+      await addToMongo(data)
       await worker.terminate()
-      await cleanup(baskoPath)
+      // await cleanup(baskoPath)
     } catch (error) {
       console.log(error)
       Logger.error(error)

@@ -37,7 +37,7 @@ export const scrollToBottom = async (page) => {
     // Wait for page load
     await delay(200)
 
-    currHeight += maxHeight/100
+    currHeight += maxHeight / 100
     maxHeight = await page.evaluate("document.body.scrollHeight")
     // Calculate new scroll height and compare
   }
@@ -54,12 +54,20 @@ export const addToMongo = async (content) => {
     }
     if (content.length) {
       for (const c of content) {
-        if(!c.price) continue
-        c.price = parseFloat(c.price.split("").filter(l => !isNaN(l)).join(""))  || null
-        console.log("prezzo", c.price)
+        if (!c.price && c.store !== "basko") continue
+        if (c.price) {
+          c.price =
+            parseFloat(
+              c.price
+                .split("")
+                .filter((l) => !isNaN(l))
+                .join("")
+            ) || null
+        }
         const found = prev.find(
           (p) => p.prodName === c.prodName && p.store === c.store
         )
+        console.log(c)
         if (!found) {
           Logger.level(3).debug("Added product with name:" + c.prodName)
           counter.added++
@@ -77,7 +85,13 @@ export const addToMongo = async (content) => {
         counter.added++
         Logger.level(1).debug("Added product with name: " + content.prodName)
         console.log("prezzo", content.price)
-        content.price = parseFloat(content?.price?.replaceAll("€", "").replaceAll(" ", "").replaceAll(",", ".") || 0)  || null
+        content.price =
+          parseFloat(
+            content?.price
+              ?.replaceAll("€", "")
+              .replaceAll(" ", "")
+              .replaceAll(",", ".") || 0
+          ) || null
         const newProd = new Product(content)
         await newProd.save()
         prev.push(content)
@@ -94,7 +108,6 @@ export const addToMongo = async (content) => {
       `Added ${counter.added} products, skipped ${counter.notAdded}. - Total products: ${prev.length}`
     )
     await mongoose.disconnect()
-    return prev
   } catch (error) {
     Logger.level(1).error(error)
   }

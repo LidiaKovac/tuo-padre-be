@@ -33,7 +33,6 @@ export const scrapeVolantino = async (page) => {
     Logger.debug("Scrolling and expansion over")
     const cards = await page.$$(".card-item")
     //   const cards =
-    console.log(cards.length)
     const prodotti = []
     for (const card of cards) {
       let img = null
@@ -76,7 +75,6 @@ export const scrapeVolantino = async (page) => {
         needsCard,
         scadenza,
       })
-      console.log("PREZZO: ", price.split("").filter(l => !isNaN(l)).join(""))
     }
     await addToMongo(prodotti)
     // await delay(10000)

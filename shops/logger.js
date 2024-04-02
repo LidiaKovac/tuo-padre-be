@@ -3,13 +3,13 @@ import config from "../logger.config.json" assert { type: "json" }
 import { readFileSync, writeFileSync } from "fs"
 import { log } from "console"
 export class Logger {
-  static __hierarchy = ["error", "warn", "info", "debug"] //wip
+  static __hierarchy = ["error", "warn", "info", "debg"] //wip
   tabLvl = 0
   static msgColor = {
     error: "\x1b[91m",
     warn: "\x1b[33m",
     info: "\x1b[36m",
-    debug: "\x1b[90m",
+    debg: "\x1b[90m",
   }
   static exec(lvl, msg) {
     if (this.isLogLvl(lvl)) {
@@ -66,9 +66,9 @@ export class Logger {
   }
 
   static debug(message) {
-    if (!this.isLogLvl("debug")) return
+    if (!this.isLogLvl("debg")) return
 
-    const { prefix, msg, reset } = this.exec("debug", message)
+    const { prefix, msg, reset } = this.exec("debg", message)
     console.log(prefix, msg, reset)
   }
 
