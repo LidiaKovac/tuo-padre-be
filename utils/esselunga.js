@@ -11,7 +11,7 @@ export const expandAll = async (page) => {
       await delay(100)
       hasClickableButton = await page.$(".load-more-products-btn:not([style])")
       if (!hasClickableButton) break
-await delay(300)
+      await delay(300)
       await hasClickableButton.scrollIntoView()
       await hasClickableButton.click()
       await footer.scrollIntoView()
@@ -41,6 +41,8 @@ export const scrapeVolantino = async (page) => {
       let prodQuantity = null
       let needsCard = false
       let scadenza = null
+      prodName = await card.$eval(".card-top h3", ({ innerText }) => innerText)
+      Logger.debug(`Scraping card with title: ${prodName}`)
       img = await card.$eval("img", ({ src }) => src)
       // await card.waitForSelector(".ws-product-tile__info");
       const priceEl = await card.$(".promo-price")
@@ -49,18 +51,17 @@ export const scrapeVolantino = async (page) => {
       } else {
         const altPrice = await card.$(".meccaniche-wrapper .price")
         if (altPrice)
-          price = await card.$eval(
-            ".meccaniche-wrapper .price",
-            ({ innerText }) => innerText
-          )
-      }
-
-      if (!price) continue
-      await delay(300)
-      if (!(await card.$(".card-top h3"))) continue
-      prodName = await card.$eval(".card-top h3", ({ innerText }) => innerText)
-
-      needsCard = (await card.$(".fidaty")) ? true : false
+        price = await card.$eval(
+      ".meccaniche-wrapper .price",
+      ({ innerText }) => innerText
+      )
+    }
+    
+    if (!price) continue
+    await delay(300)
+    if (!(await card.$(".card-top h3"))) continue
+    
+    needsCard = (await card.$(".fidaty")) ? true : false
       scadenza = await page.$eval(
         ".selected-flyer-text-info .date-container",
         ({ innerText }) => innerText

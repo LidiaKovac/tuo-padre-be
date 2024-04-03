@@ -58,16 +58,17 @@ export const addToMongo = async (content) => {
         if (c.price) {
           c.price =
             parseFloat(
-              c.price
-                .split("")
-                .filter((l) => !isNaN(l))
-                .join("")
+              c?.price
+                ?.replaceAll("€", "")
+                .replaceAll(" ", "")
+                .replaceAll(",", ".")
+                .trim() || 0
             ) || null
         }
+
         const found = prev.find(
           (p) => p.prodName === c.prodName && p.store === c.store
         )
-        console.log(c)
         if (!found) {
           Logger.level(3).debug("Added product with name:" + c.prodName)
           counter.added++
@@ -84,13 +85,14 @@ export const addToMongo = async (content) => {
       if (!prodNames.includes(content.prodName)) {
         counter.added++
         Logger.level(1).debug("Added product with name: " + content.prodName)
-        console.log("prezzo", content.price)
+        Logger.debug("prezzo", content.price)
         content.price =
           parseFloat(
             content?.price
               ?.replaceAll("€", "")
               .replaceAll(" ", "")
-              .replaceAll(",", ".") || 0
+              .replaceAll(",", ".")
+              .trim() || 0
           ) || null
         const newProd = new Product(content)
         await newProd.save()

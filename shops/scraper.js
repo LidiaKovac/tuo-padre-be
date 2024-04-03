@@ -31,7 +31,13 @@ const __dirname = import.meta.dirname
 
   TODO: deploy as a background process
   TODO: add autopush 
-  TODO: ordina / filtra per prezzo
+  // TODO: ordina / filtra per prezzo
+
+  TODO: move basko to suggestions
+  // TODO: fix prices
+  TODO: hide longer descriptions (see ipercoop)
+  TODO: penny images
+  TODO: save filters in  localStorage
 */
 
 export class Scraper {
