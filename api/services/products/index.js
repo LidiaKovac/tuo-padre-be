@@ -63,7 +63,7 @@ prodRoute.get("/", async (req, res, next) => {
           query.criteria.prodName.toLowerCase()
         )
         if (comparison === 0) return true
-        return comparison < 3
+        return comparison < 2
       })
       return similar
     })
