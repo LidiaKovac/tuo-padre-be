@@ -2,8 +2,9 @@ import { Router } from "express"
 import Product from "../../schemas/product.schema.js"
 // import { db } from "../../index.js";
 import q2m from "query-to-mongo"
-import { StemmerIt } from "@nlpjs/lang-it"
+import { StemmerIt, StopwordsIt } from "@nlpjs/lang-it"
 import { Logger } from "../../../shops/logger.js"
+import compare from "js-levenshtein"
 const prodRoute = Router()
 
 prodRoute.get("/", async (req, res, next) => {
@@ -49,12 +50,36 @@ prodRoute.get("/", async (req, res, next) => {
     .limit(size)
     .skip(size * (page - 1))
     .sort({ [order]: 1 })
+  const basko = await Product.find({ store: "basko" })
+  let suggestions = []
+  if (query.criteria.prodName.length > 0) {
+    suggestions = basko.filter((prod) => {
+      // const stopwords = new StopwordsIt()
+      const words = prod.prodName.split(" ")
+      const similar = words.some((word) => {
+       
+        const comparison = compare(
+          word.trim().toLowerCase(),
+          query.criteria.prodName.toLowerCase()
+        )
+        if (comparison === 0) return true
+        return comparison < 3
+      })
+      return similar
+    })
+  }
   res.send({
     data: prods,
+    suggestions,
     count,
     next:
-      prods.length > 0 ? `${process.env.URL}products?page=${page + 1}` : null,
-    prev: page > 1 ? `${process.env.URL}products?page=${page - 1}` : null,
+      prods.length > 0
+        ? `${process.env.URL}products?page=${parseInt(page) + 1}`
+        : null,
+    prev:
+      parseInt(page) > 1
+        ? `${process.env.URL}products?page=${parseInt(page) - 1}`
+        : null,
   })
 })
 
