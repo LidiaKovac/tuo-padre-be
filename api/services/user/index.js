@@ -56,18 +56,26 @@ userRoute.post(
       let foundUser = await User.findOne({
         email: body.email,
       })
-      const matching = await bcrypt.compare(body.password, foundUser.password)
-      console.log(matching)
-      if (foundUser && matching) {
-        const token = await generateJWT({
-          lastName: foundUser.lastName,
-          email: foundUser.email,
-        })
-        res
-          .set("Access-Control-Expose-Headers", "token")
-          .set("token", token)
-          .sendStatus(200)
-      } else res.sendStatus(404)
+      if (foundUser) {
+        const matching = await bcrypt.compare(body.password, foundUser.password)
+        if (matching) {
+          const token = await generateJWT({
+            lastName: foundUser.lastName,
+            email: foundUser.email,
+          })
+
+          res
+            .set("Access-Control-Expose-Headers", "token")
+            .set("token", token)
+            .status(200)
+            .send({
+                name: foundUser.name,
+                email: foundUser.email, 
+                avatar: foundUser.avatar, 
+                cart: foundUser.cart
+            })
+        } else res.status(400).send("Wrong password")
+      } else res.status(400).send("User does not exist.")
     } catch (error) {
       next(error)
     }
@@ -96,6 +104,7 @@ userRoute.post(
       } else {
         await User.create({
           ...req.body,
+          password: await bcrypt.hash(req.body.password, 10),
         })
         // Send verification email
         const token = await generateJWT({
@@ -132,7 +141,6 @@ userRoute.post(
 userRoute.get("/verify", async (req, res, next) => {
   try {
     const token = req.query.token
-    console.log(token)
     if (!token) {
       res.sendStatus(400)
     } else {

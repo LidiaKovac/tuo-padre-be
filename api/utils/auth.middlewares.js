@@ -37,7 +37,7 @@ export const authMidd = async (req, res, next) => {
         delete decoded.exp
         const me = await User.findOne({
           ...decoded,
-        })
+        }, ["name", "email", "avatar", "cart"])
         if (me) {
           req.user = me
           next()

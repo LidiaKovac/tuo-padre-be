@@ -17,6 +17,10 @@ const userSchema = new Schema(
       default:
         "https://source.boringavatars.com/beam/120/Stefan?colors=264653,2a9d8f,e9c46a",
     },
+    password: {
+        type: String, 
+        required: true
+    },
     role: {
       type: String,
       enum: roles,
@@ -32,7 +36,7 @@ const userSchema = new Schema(
 )
 
 userSchema.pre("save", async function (next) {
-  this.avatar = `https://source.boringavatars.com/beam/120/${this.name}?colors=4d9de0,c9e6fe,ee7b30`
+  this.avatar = `https://source.boringavatars.com/beam/120/${this.name.split(" ")[0]}?colors=4d9de0,c9e6fe,ee7b30`
   next()
 })
 
