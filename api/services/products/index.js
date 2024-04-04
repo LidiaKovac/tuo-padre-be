@@ -52,7 +52,7 @@ prodRoute.get("/", async (req, res, next) => {
     .sort({ [order]: 1 })
   const basko = await Product.find({ store: "basko" })
   let suggestions = []
-  if (query.criteria.prodName.length > 0) {
+  if (query.criteria.prodName?.length > 0) {
     suggestions = basko.filter((prod) => {
       // const stopwords = new StopwordsIt()
       const words = prod.prodName.split(" ")

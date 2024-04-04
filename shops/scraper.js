@@ -17,27 +17,19 @@ import path from "path"
 import { cleanup, uploadImages, upscaleAndCrop } from "../utils/basko.js"
 import { readdir } from "fs/promises"
 import { createWorker } from "tesseract.js"
+import { connectToDB } from "../api/configs/mongo.config.js"
 
 const __dirname = import.meta.dirname
 
 /* 
 
-  // TODO: figure out why carrefour is giving lots of empty images 
-  // TODO: fix esselunga repeated scraping (proably from "shop more" buttons)
   TODO: make basko easier, cleaner and lighter
-
-  // TODO: IPERCOOP
-  // TODO: PENNY con volantino non offerte
 
   TODO: deploy as a background process
   TODO: add autopush 
-  // TODO: ordina / filtra per prezzo
 
   TODO: move basko to suggestions
-  // TODO: fix prices
-  TODO: hide longer descriptions (see ipercoop)
   TODO: penny images
-  TODO: save filters in  localStorage
 */
 
 export class Scraper {
@@ -477,7 +469,7 @@ export class Scraper {
           const final = {
             store: "basko",
             img,
-            prodName,
+            prodName: prodName.replaceAll(/[^A-Z0-9\s]+/ig, "")
           }
           data.push(final)
         }
@@ -493,7 +485,6 @@ export class Scraper {
   }
   static async scrapeAll() {
     try {
-      writeFileSync(path.resolve(__dirname, "db.json"), "[]")
       Logger.log("Scraping has started...")
       const startTime = new Date()
       Logger.log("Scraping Carrefour Express: ")

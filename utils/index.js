@@ -46,7 +46,7 @@ export const scrollToBottom = async (page) => {
 export const addToMongo = async (content) => {
   try {
     Logger.level(1).log("Phase 3️⃣ - Adding to MongoDB.")
-    await connectToDB()
+    // await connectToDB()
     let prev = await Product.find()
     let counter = {
       added: 0,
@@ -109,7 +109,7 @@ export const addToMongo = async (content) => {
     Logger.level(1).log(
       `Added ${counter.added} products, skipped ${counter.notAdded}. - Total products: ${prev.length}`
     )
-    await mongoose.disconnect()
+    // await mongoose.disconnect()
   } catch (error) {
     Logger.level(1).error(error)
   }
