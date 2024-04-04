@@ -69,10 +69,10 @@ userRoute.post(
             .set("token", token)
             .status(200)
             .send({
-                name: foundUser.name,
-                email: foundUser.email, 
-                avatar: foundUser.avatar, 
-                cart: foundUser.cart
+              name: foundUser.name,
+              email: foundUser.email,
+              avatar: foundUser.avatar,
+              cart: foundUser.cart,
             })
         } else res.status(400).send("Wrong password")
       } else res.status(400).send("User does not exist.")
