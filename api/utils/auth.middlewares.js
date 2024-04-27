@@ -6,7 +6,7 @@ export const generateJWT = (payload) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: "1 day" },
+      { expiresIn: "365 days" },
       (err, token) => {
         if (err) rej(err)
         else res(token)
