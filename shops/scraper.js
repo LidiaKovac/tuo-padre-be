@@ -8,6 +8,7 @@ import {
   delay,
   scrollToBottom,
 } from "../utils/index.js"
+import Product from "../api/schemas/product.schema.js"
 import { scrape } from "../utils/carrefour.js"
 import { Logger } from "./logger.js"
 import moment from "moment"
@@ -485,6 +486,7 @@ export class Scraper {
   }
   static async scrapeAll() {
     try {
+      await Product.deleteMany({})
       Logger.log("Scraping has started...")
       const startTime = new Date()
       Logger.log("Scraping Carrefour Express: ")

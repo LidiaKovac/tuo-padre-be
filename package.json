@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon ./api",
-    "start": "node /api",
+    "start": "node ./api --host 0.0.0.0",
     "scrape": "node ./shops/scraperRunner.js"
   },
   "dependencies": {

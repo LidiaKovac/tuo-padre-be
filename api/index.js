@@ -44,7 +44,7 @@ cron.schedule("00 8 * * *", async () => {
 
 await connectToDB()
 
-app.listen(3001, () => {
+app.listen(3001, "192.168.1.251", () => {
   Logger.log("📨Preparing to send emails...📨")
   sgMail.setApiKey(process.env.SENDGRID_API_KEY)
   Logger.log("🌝 API is up! 🌚")
