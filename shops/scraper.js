@@ -1,7 +1,6 @@
-import { writeFileSync } from "fs"
 import puppeteer from "puppeteer"
 import { v2 as cloudinary } from "cloudinary"
-import config from "../scraper.config.json" assert { type: "json" }
+import config from "../scraper.conf.js"
 import {
   addToMongo,
   configCloudinary,
@@ -15,11 +14,10 @@ import moment from "moment"
 import { scrapeVolantino } from "../utils/esselunga.js"
 import { scrapeCategory } from "../utils/lidl.js"
 import path from "path"
-import { cleanup, uploadImages, upscaleAndCrop } from "../utils/basko.js"
+import { uploadImages, upscaleAndCrop } from "../utils/basko.js"
 import { readdir } from "fs/promises"
 import { createWorker } from "tesseract.js"
-import { connectToDB } from "../api/configs/mongo.config.js"
-
+import { Cluster } from "puppeteer-cluster"
 const __dirname = import.meta.dirname
 
 /* 
@@ -33,32 +31,49 @@ const __dirname = import.meta.dirname
   TODO: penny images
 */
 
+const CLUSTER_OPTIONS = {
+  concurrency: Cluster.CONCURRENCY_PAGE,
+  maxConcurrency: 2,
+  monitor: true,
+  puppeteerOptions: config.puppeteer,
+  retryLimit: 3, // Retry failed tasks up to 3 times
+  timeout: 5 * 60 * 1000,
+}
+
 export class Scraper {
   browser
-  //   General
-  static async launchBrowser(baseUrl, endpoint) {
-    Logger.level(1).log("Phase 1️⃣ - Navigating browser")
+  cluster
+  subCluster
 
-    const browser = await puppeteer.launch({
-      headless: config.headless,
-      args: ["--start-maximized"],
-    })
-    this.browser = browser
-    const page = await browser.newPage()
-
-    await page.setViewport({ width: 1366, height: 768 })
-    const context = browser.defaultBrowserContext()
-    await context.overridePermissions(baseUrl, ["geolocation"])
-    // Navigate the page to a URL
-    await page.goto(baseUrl + endpoint)
-    // Set screen size
-    // await page.setViewport({ width: 1495, height: 1024 });
-    await page.setGeolocation({ latitude: 44.414165, longitude: 8.942184 })
-    return { page, browser }
+  constructor() {
+    process.on("SIGINT", this.shutdown)
+    process.on("SIGTERM", this.shutdown)
   }
-  static async acceptCookies(page, selector) {
+  shutdown = async () => {
+    await this.cluster.close()
+    process.exit(0)
+  }
+
+  async abortReqs(page) {
+    await page.setRequestInterception(true)
+    page.on("request", async (req) => {
+      if (
+        // req.resourceType() == "stylesheet" ||
+        req.resourceType() == "font" ||
+        req.resourceType() == "image"
+      ) {
+        await req.abort()
+      } else {
+        await req.continue()
+      }
+    })
+  }
+
+  async launchBrowser() {
+    this.cluster = await Cluster.launch(CLUSTER_OPTIONS)
+  }
+  async acceptCookies(page, selector) {
     try {
-      await delay(1000)
       const hasCookie = await page.$(selector)
       if (hasCookie) {
         const cookie = await page.waitForSelector(selector)
@@ -70,17 +85,20 @@ export class Scraper {
     }
   }
   //   Common to more shops
-  static async scrapeVolantinoPiu({ page, shopName }) {
+  async scrapeVolantinoPiu({ page, shopName }) {
     try {
+      await delay(500)
       // Wait and click on first result
-      await this.acceptCookies(
-        page,
-        "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
-      )
-      await delay(3000)
-
-      await page.waitForSelector("li.esplodi")
+      await this.acceptCookies(page, config.selectors.cookies.cybot)
+      // await delay(3000)
+      const close = await page.$(".modal .btn-close")
+      if (close) {
+        await close.click()
+      }
+      await delay(500)
+      // await page.waitForSelector("li.esplodi")
       const button = await page.$("li.esplodi")
+      await delay(500)
       await button.click()
       await page.waitForSelector(".card")
       const cards = await page.$$(".card")
@@ -135,20 +153,17 @@ export class Scraper {
     }
   }
   //   !Shops
-  static async scrapeCoop() {
+  scrapeCoop = async ({ page, data }) => {
     try {
+      await page.setRequestInterception(true)
+      const context = page.browser().defaultBrowserContext()
+      await context.overridePermissions(baseUrl, ["geolocation"])
       // Launch the browser and open a new blank page
-      const { page, browser } = await this.launchBrowser(
-        "https://volantinocoop.it/",
-        "cerca"
-      )
-      this.acceptCookies(
-        page,
-        "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
-      )
+      await this.abortReqs(page)
+      await page.goto(data)
+      await this.acceptCookies(page, config.selectors.cookies.cybot)
       await page.type("#pac-input", "genova")
 
-      await delay(1000)
       await page.waitForSelector("button#submit")
       const sub = await page.$("button#submit")
       await sub.scrollIntoView()
@@ -156,92 +171,97 @@ export class Scraper {
       const shop = await page.waitForSelector(".list-menu .item")
       await shop.click()
       // Type into search box
-      await delay(3000)
       Logger.level(1).log("Phase 2️⃣ - Scraping")
       await this.scrapeVolantinoPiu({
         page,
         shopName: "coop",
       })
-      await browser.close()
     } catch (error) {
       Logger.error(error)
     }
   }
-  static async scrapeIperCoop() {
+  scrapeIperCoop = async ({ page, data }) => {
     try {
-      // Launch the browser and open a new blank page
-      const { page, browser } = await this.launchBrowser(
-        "https://coopliguria.promoipercoop.it",
-        ""
-      )
-      this.acceptCookies(
-        page,
-        "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
-      )
-      await page.type(".swal2-input", "genova")
+      await this.abortReqs(page)
+      const context = page.browser().defaultBrowserContext()
+      await context.overridePermissions(data + "/", ["geolocation"])
+      await page.setGeolocation({ latitude: 44.414165, longitude: 8.942184 })
+      await page.goto(data)
+      await delay(500)
+      await this.acceptCookies(page, config.selectors.cookies.cybot)
+      if (await page.$(".swal2-input")) {
+        await page.type(".swal2-input", "genova")
+        await page.keyboard.press("Enter")
 
-      await delay(1000)
-      await page.keyboard.press("Enter")
-      // const sub = await page.$("button#submit")
-      // await sub.scrollIntoView()
-      // await sub.click()
-      const shop = await page.waitForSelector(
-        ".list-menu .item:has(img[src*='Ipercoop'])"
-      )
-      await shop.click()
+        const shop = await page.waitForSelector(
+          ".list-menu .item:has(img[src*='Ipercoop'])"
+        )
+        await shop.click()
+      }
       // Type into search box
-      await delay(3000)
-      Logger.level(1).log("Phase 2️⃣ - Scraping")
       const flyers = await page.$$(".swiper-slide")
-      for (const flyer of flyers) {
-        const href = await flyer.$eval("a", ({ href }) => href)
-        const { page: curr } = await this.launchBrowser(href, "")
-        await curr.goto(href)
+      const volantinoTask = async ({ page, data: href }) => {
+        await page.setRequestInterception(true)
+        page.on("request", async (req) => {
+          if (
+            req.resourceType() == "stylesheet" ||
+            req.resourceType() == "font" ||
+            req.resourceType() == "image"
+          ) {
+            await req.abort()
+          } else {
+            await req.continue()
+          }
+        })
+        await page.goto(href)
 
         await this.scrapeVolantinoPiu({
-          page: curr,
+          page: page,
           shopName: "ipercoop",
         })
       }
-      await browser.close()
+      this.subCluster = await Cluster.launch(CLUSTER_OPTIONS)
+      for (const flyer of flyers) {
+        const href = await flyer.$eval("a", ({ href }) => href)
+        await this.subCluster.queue(href, volantinoTask)
+      }
+      await this.subCluster.idle()
+      await this.subCluster.close()
     } catch (error) {
-      Logger.error(error)
+      console.log(error)
     }
   }
-  static async scrapePam() {
+  scrapePam = async ({ page, data: url }) => {
     try {
-      const { page, browser } = await this.launchBrowser(
-        "https://www.pampanorama.it/",
-        "punti-vendita/genova-lagaccio"
-      )
+      await this.abortReqs(page)
+
+      await page.goto(url)
       await this.acceptCookies(page, "#cookiePopupSave")
       await page.waitForSelector(".storeFlyer img[src*='volantinopiu']")
       let counter = await page.$$eval(
         ".storeFlyer img[src*='volantinopiu']",
         ({ length }) => length
       )
+
       for (let i = 1; i <= counter; i++) {
         const volantino = await page.$(`.storeFlyer:nth-of-type(${i})`)
         if (volantino && volantino.$("img[src*='volantinopiu']")) {
           await volantino.click()
-          await page.reload()
-          Logger.level(1).log("Phase 2️⃣ - Scraping")
+          await delay(1000)
+          await page.waitForSelector(".esplodi")
           await this.scrapeVolantinoPiu({
             page,
             shopName: "pam",
           })
-          Logger.log("Flyer completed, moving on to next...")
-
           await page.goBack()
-          await delay(3000)
         }
       }
-      await browser.close()
+
     } catch (error) {
       Logger.error(error)
     }
   }
-  static async scrapePenny() {
+  async scrapePenny() {
     try {
       // Launch the browser and open a new blank page
       const { page, browser } = await this.launchBrowser(
@@ -249,7 +269,7 @@ export class Scraper {
         "offerte"
       )
 
-      await this.acceptCookies(page, "#onetrust-accept-btn-handler")
+      await this.acceptCookies(page, config.selectors.cookies.onetrust)
       await delay(3000)
       await page.waitForSelector(".ws-product-grid__list li.ws-card")
       const cards = await page.$$(".ws-product-grid__list li.ws-card")
@@ -307,226 +327,209 @@ export class Scraper {
       Logger.error(error)
     }
   }
-  static async scrapeCarrefourExpress() {
+  // async scrapeCarrefourExpress() {
+  //   try {
+  //     const { page, browser } = await this.launchBrowser(
+  //       "https://www.carrefour.it/",
+  //       "/volantino/supermercato-carrefour-express-genova-via-bologna-94-94-a-r/2467"
+  //     )
+
+  //     await this.acceptCookies(page, config.selectors.cookies.onetrust)
+
+  //     await delay(3000)
+  //     await scrollToBottom(page)
+  //     // Seleziona tutti i volantini in cima alla pagina
+  //     const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
+  //     for (let i = 1; i <= volantini.length; i++) {
+  //       const volantino = await volantini[i - 1].$eval(
+  //         `a.trackingEventsLink`,
+  //         ({ href }) => href
+  //       )
+  //       if (!volantino) continue
+  //       // await volantino.scrollIntoView()
+  //       // await volantino.click()
+  //       // await delay(3000)
+  //       const curr = await browser.newPage()
+  //       await curr.goto(volantino)
+  //       Logger.level(1).log("Phase 2️⃣ - Scraping")
+  //       await scrape(curr, "carrefour-express")
+  //     }
+  //     await browser.close()
+  //   } catch (error) {
+  //     Logger.error(error)
+  //   }
+  // }
+  // async scrapeCarrefourMarket() {
+  //   try {
+  //     const { page, browser } = await this.launchBrowser(
+  //       "https://www.carrefour.it/",
+  //       "volantino/supermercato-carrefour-market-genova-via-cesarea-12r-14r-16r/4390"
+  //     )
+
+  //     await this.acceptCookies(page, config.selectors.cookies.onetrust)
+
+  //     await delay(3000)
+
+  //     const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
+  //     for (let i = 1; i <= volantini.length; i++) {
+  //       const volantino = await volantini[i - 1].$eval(
+  //         `a.trackingEventsLink`,
+  //         ({ href }) => href
+  //       )
+  //       if (!volantino) continue
+  //       // await volantino.scrollIntoView()
+  //       // await volantino.click()
+  //       // await delay(3000)
+  //       const curr = await browser.newPage()
+  //       await curr.goto(volantino)
+  //       Logger.level(1).log("Phase 2️⃣ - Scraping")
+  //       await scrape(curr, "carrefour-market")
+  //     }
+  //     await browser.close()
+  //   } catch (error) {
+  //     Logger.error(error)
+  //   }
+  // }
+  // async scrapeEsselunga() {
+  //   try {
+  //     const { page, browser } = await this.launchBrowser(
+  //       "https://www.esselunga.it/",
+  //       "it-it/promozioni/volantini.ben.html"
+  //     )
+  //     await this.acceptCookies(
+  //       page,
+  //       ".cookie-manager-container-wrapper .btn.btn-blue-primary.accept-all-btn"
+  //     )
+
+  //     await delay(1000)
+  //     // Seleziona tutti i volantini e li apre uno per uno
+  //     const flyers = await page.$$(".single-flyer")
+  //     for (let i = 0; i < flyers.length; i++) {
+  //       const flyer = await page.$(`.single-flyer:nth-of-type(${i + 1})`)
+  //       if (!flyer) continue
+  //       const btn = await flyer.$eval(
+  //         ".btn-blue-primary.flyer-btn",
+  //         ({ href }) => href
+  //       )
+  //       const currPage = await browser.newPage()
+
+  //       await currPage.goto(btn)
+  //       await delay(2000)
+  //       await this.acceptCookies(
+  //         page,
+  //         ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
+  //       )
+  //       Logger.level(1).log("Phase 2️⃣ - Scraping")
+  //       await scrapeVolantino(currPage)
+  //     }
+
+  //     await browser.close()
+  //   } catch (error) {
+  //     Logger.error(error)
+  //   }
+  // }
+  // async scrapeLidl() {
+  //   try {
+  //     // Launch the browser and open a new blank page
+  //     const { page, browser } = await this.launchBrowser(
+  //       "https://www.lidl.it",
+  //       "/"
+  //     )
+
+  //     await this.acceptCookies(page, config.selectors.cookies.onetrust)
+
+  //     const linkToSales = await page.waitForSelector(
+  //       ".n-header__main-navigation-link--sale"
+  //     )
+  //     await linkToSales.click()
+  //     await delay(3000)
+  //     const bigCard = await page.waitForSelector(".AHeroStageItems__Item")
+
+  //     await bigCard.click()
+  //     await page.waitForSelector(".ATheHeroStage__Offer")
+  //     const categories = await page.$$eval(
+  //       "div[role='row']:first-of-type .ATheHeroStage__Offer .ATheHeroStage__OfferAnchor",
+  //       (aTags) => aTags.map((a) => a.href)
+  //     )
+  //     Logger.level(1).log("Phase 2️⃣ - Scraping")
+  //     for (const cat of categories) {
+  //       await page.goto(cat)
+
+  //       await scrapeCategory(page)
+  //     }
+  //     await browser.close()
+  //   } catch (error) {
+  //     Logger.error(error)
+  //   }
+  // }
+  // async scrapeBasko() {
+  //   let worker = await createWorker("ita_old")
+  //   try {
+  //     Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files")
+
+  //     const baskoPath = path.resolve(__dirname, "..", "shops", "basko")
+  //     await configCloudinary()
+
+  //     await cloudinary.api.delete_resources_by_prefix("shopping")
+  //     await cloudinary.api.delete_resources_by_prefix("flyers")
+  //     Logger.level(1).log("Phase 2️⃣ - Upscaling and cropping")
+
+  //     await upscaleAndCrop(3.5, baskoPath)
+
+  //     let images = []
+  //     const folders = await readdir(path.resolve(baskoPath, "parts"))
+  //     Logger.level(1).log("Phase 3️⃣ - Uploading images")
+
+  //     const data = []
+  //     for (const folder of folders) {
+  //       images = await uploadImages(folder, baskoPath)
+  //       Logger.level(2).log("Performing OCR")
+  //       for (const { secure_url: img } of images) {
+  //         const ret = await worker.recognize(img)
+  //         const prodName = ret.data.words.map((w) => w.text).join(" ")
+  //         const final = {
+  //           store: "basko",
+  //           img,
+  //           prodName: prodName.replaceAll(/[^A-Z0-9\s]+/gi, ""),
+  //         }
+  //         data.push(final)
+  //       }
+  //     }
+  //     await addToMongo(data)
+  //     await worker.terminate()
+  //     // await cleanup(baskoPath)
+  //   } catch (error) {
+  //     console.log(error)
+  //     Logger.error(error)
+  //     await worker.terminate()
+  //   }
+  // }
+  async scrapeAll() {
     try {
-      const { page, browser } = await this.launchBrowser(
-        "https://www.carrefour.it/",
-        "/volantino/supermercato-carrefour-express-genova-via-bologna-94-94-a-r/2467"
+      // await Product.deleteMany({})
+      await this.launchBrowser()
+      const SHOP_MAP = new Map()
+      // SHOP_MAP.set("https://volantinocoop.it/cerca", this.scrapeCoop)
+      SHOP_MAP.set("https://coopliguria.promoipercoop.it", this.scrapeIperCoop)
+      SHOP_MAP.set(
+        "https://www.pampanorama.it/punti-vendita/genova-lagaccio",
+        this.scrapePam
       )
 
-      await this.acceptCookies(page, "#onetrust-accept-btn-handler")
-
-      await delay(3000)
-      await scrollToBottom(page)
-      // Seleziona tutti i volantini in cima alla pagina
-      const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
-      for (let i = 1; i <= volantini.length; i++) {
-        const volantino = await volantini[i - 1].$eval(
-          `a.trackingEventsLink`,
-          ({ href }) => href
-        )
-        if (!volantino) continue
-        // await volantino.scrollIntoView()
-        // await volantino.click()
-        // await delay(3000)
-        const curr = await browser.newPage()
-        await curr.goto(volantino)
-        Logger.level(1).log("Phase 2️⃣ - Scraping")
-        await scrape(curr, "carrefour-express")
-      }
-      await browser.close()
+      SHOP_MAP.forEach(async (fn, url) => {
+        await this.cluster.queue(url, fn)
+      })
+      await this.cluster.idle()
+      await this.subCluster.idle()
+      await this.cluster.close()
+      await this.subCluster.close()
+      // SHOP_MAP.set("https://volantinocoop.it/cerca", this.scrapeCoop)
+      // SHOP_MAP.set("https://volantinocoop.it/cerca", this.scrapeCoop)
     } catch (error) {
       Logger.error(error)
-    }
-  }
-  static async scrapeCarrefourMarket() {
-    try {
-      const { page, browser } = await this.launchBrowser(
-        "https://www.carrefour.it/",
-        "volantino/supermercato-carrefour-market-genova-via-cesarea-12r-14r-16r/4390"
-      )
-
-      await this.acceptCookies(page, "#onetrust-accept-btn-handler")
-
-      await delay(3000)
-
-      const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
-      for (let i = 1; i <= volantini.length; i++) {
-        const volantino = await volantini[i - 1].$eval(
-          `a.trackingEventsLink`,
-          ({ href }) => href
-        )
-        if (!volantino) continue
-        // await volantino.scrollIntoView()
-        // await volantino.click()
-        // await delay(3000)
-        const curr = await browser.newPage()
-        await curr.goto(volantino)
-        Logger.level(1).log("Phase 2️⃣ - Scraping")
-        await scrape(curr, "carrefour-market")
-      }
-      await browser.close()
-    } catch (error) {
-      Logger.error(error)
-    }
-  }
-  static async scrapeEsselunga() {
-    try {
-      const { page, browser } = await this.launchBrowser(
-        "https://www.esselunga.it/",
-        "it-it/promozioni/volantini.ben.html"
-      )
-      await this.acceptCookies(
-        page,
-        ".cookie-manager-container-wrapper .btn.btn-blue-primary.accept-all-btn"
-      )
-
-      await delay(1000)
-      // Seleziona tutti i volantini e li apre uno per uno
-      const flyers = await page.$$(".single-flyer")
-      for (let i = 0; i < flyers.length; i++) {
-        const flyer = await page.$(`.single-flyer:nth-of-type(${i + 1})`)
-        if (!flyer) continue
-        const btn = await flyer.$eval(
-          ".btn-blue-primary.flyer-btn",
-          ({ href }) => href
-        )
-        const currPage = await browser.newPage()
-
-        await currPage.goto(btn)
-        await delay(2000)
-        await this.acceptCookies(
-          page,
-          ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
-        )
-        Logger.level(1).log("Phase 2️⃣ - Scraping")
-        await scrapeVolantino(currPage)
-      }
-
-      await browser.close()
-    } catch (error) {
-      Logger.error(error)
-    }
-  }
-  static async scrapeLidl() {
-    try {
-      // Launch the browser and open a new blank page
-      const { page, browser } = await this.launchBrowser(
-        "https://www.lidl.it",
-        "/"
-      )
-
-      await this.acceptCookies(page, "#onetrust-accept-btn-handler")
-
-      const linkToSales = await page.waitForSelector(
-        ".n-header__main-navigation-link--sale"
-      )
-      await linkToSales.click()
-      await delay(3000)
-      const bigCard = await page.waitForSelector(".AHeroStageItems__Item")
-
-      await bigCard.click()
-      await page.waitForSelector(".ATheHeroStage__Offer")
-      const categories = await page.$$eval(
-        "div[role='row']:first-of-type .ATheHeroStage__Offer .ATheHeroStage__OfferAnchor",
-        (aTags) => aTags.map((a) => a.href)
-      )
-      Logger.level(1).log("Phase 2️⃣ - Scraping")
-      for (const cat of categories) {
-        await page.goto(cat)
-
-        await scrapeCategory(page)
-      }
-      await browser.close()
-    } catch (error) {
-      Logger.error(error)
-    }
-  }
-  static async scrapeBasko() {
-    let worker = await createWorker("ita_old")
-    try {
-      Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files")
-
-      const baskoPath = path.resolve(__dirname, "..", "shops", "basko")
-      await configCloudinary()
-
-      await cloudinary.api.delete_resources_by_prefix("shopping")
-      await cloudinary.api.delete_resources_by_prefix("flyers")
-      Logger.level(1).log("Phase 2️⃣ - Upscaling and cropping")
-
-      await upscaleAndCrop(3.5, baskoPath)
-
-      let images = []
-      const folders = await readdir(path.resolve(baskoPath, "parts"))
-      Logger.level(1).log("Phase 3️⃣ - Uploading images")
-
-      const data = []
-      for (const folder of folders) {
-        images = await uploadImages(folder, baskoPath)
-        Logger.level(2).log("Performing OCR")
-        for (const { secure_url: img } of images) {
-          const ret = await worker.recognize(img)
-          const prodName = ret.data.words.map((w) => w.text).join(" ")
-          const final = {
-            store: "basko",
-            img,
-            prodName: prodName.replaceAll(/[^A-Z0-9\s]+/ig, "")
-          }
-          data.push(final)
-        }
-      }
-      await addToMongo(data)
-      await worker.terminate()
-      // await cleanup(baskoPath)
-    } catch (error) {
-      console.log(error)
-      Logger.error(error)
-      await worker.terminate()
-    }
-  }
-  static async scrapeAll() {
-    try {
-      await Product.deleteMany({})
-      Logger.log("Scraping has started...")
-      const startTime = new Date()
-      Logger.log("Scraping Carrefour Express: ")
-      await this.scrapeCarrefourExpress()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping Carrefour Market: ")
-      await this.scrapeCarrefourMarket()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping COOP: ")
-      // Giovedi'
-      await this.scrapeCoop()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping IperCOOP: ")
-      // Giovedi'
-      await this.scrapeIperCoop()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping Esselunga: ")
-      // Lunedi' / 2 sett
-      await this.scrapeEsselunga()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping Pam: ")
-      //
-      await this.scrapePam()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping Penny: ")
-      // Giovedi' / 2 sett
-      await this.scrapePenny()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping Lidl: ")
-      // Lunedi'
-      await this.scrapeLidl()
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      Logger.log("Scraping Basko: ")
-      // Martedi' / 2 sett.
-      await this.scrapeBasko()
-      Logger.log("Scraping has ended.")
-      Logger.log("Time elapsed: " + moment(startTime).fromNow(true))
-      this.browser.close()
-    } catch (error) {
-      Logger.error(error)
+      this.cluster.close()
+    } finally {
+      this.cluster.close()
     }
   }
 }

@@ -1,12 +1,10 @@
 {
   "puppeteer": {
-    "headless": true,
-    "executablePath": "/usr/bin/google-chrome",
+    "headless": false,
     "args": [
       "--no-sandbox",
       "--disable-setuid-sandbox"
-    ],
-    "ignoreDefaultArgs": []
+    ]
   },
   "selectors": {
     "cookies": {

@@ -4,8 +4,9 @@ import { Logger } from "./logger.js"
 import { Scraper } from "./scraper.js"
 try {
   await connectToDB()
-  await Scraper.scrapeAll()
-  await mongoose.disconnect()
+  const scraper = new Scraper()
+  await scraper.scrapeAll()
+  // await mongoose.disconnect()
 } catch (error) {
   Logger.error(error)
 }
