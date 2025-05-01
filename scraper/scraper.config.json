@@ -1,0 +1,72 @@
+{
+  "puppeteer": {
+    "headless": true,
+    "args": ["--start-maximized", "--no-sandbox", "--disable-setuid-sandbox"]
+  },
+  "cookies": {
+    "cybot": "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll",
+    "save": "#cookiePopupSave",
+    "onetrust": "#onetrust-accept-btn-handler",
+    "manager": ".cookie-manager-container-wrapper .btn.btn-blue-primary.accept-all-btn"
+  },
+  "volantinoPiu": {
+    "button": "li.esplodi",
+    "card": ".card",
+    "scadenza": ".barra_laterale .fw-semibold",
+    "img": "img",
+    "price": ".product-price",
+    "name": "-title",
+    "desc": "-text",
+    "needsCard": ".meccanica img"
+  },
+  "coop": {
+    "input": "#pac-input",
+    "submit": "button#submit",
+    "search": ".list-menu .item"
+  },
+  "ipercoop": {
+    "search": ".swal2-input",
+    "cauroselBtn": ".swiper-slide"
+  },
+  "pam": {
+    "carousel": ".carouselItem",
+    "volantinoImg": "img[src*='volantinopiu']"
+  },
+  "penny": {
+    "prefix": ".ws",
+    "product": "-product",
+    "gridList": "-grid__list",
+    "card": "-card",
+    "img": "img",
+    "tileInfo": "-tile__info",
+    "discount": "-tile-container__discount-info",
+    "price": "-price-type__value",
+    "name": "h3",
+    "info": "-information",
+    "scadenza": "-price-validity div:last-of-type"
+  },
+  "carrefour": {
+    "volantini": ".card.card--carousel:not(.promoclick)",
+    "link": "a.trackingEventsLink",
+    "label": "label[for='listing']",
+    "h1": "h1.flayers-carousel__title",
+    "search": ".search-orderby",
+    "prod": ".product",
+    "scadenza": ".js-flyer-end",
+    "more": ".btn-show-more",
+    "tile": ".tile-image",
+    "price": ".d-prices__final strong",
+    "desc": "h3.tile-description"
+  },
+  "esselunga": {
+    "volantino": ".single-flyer",
+    "btn": ".btn-blue-primary.flyer-btn",
+    "footer": "footer",
+    "more": ".load-more-products-btn:not([style])",
+    "card": ".card-item",
+    "name": ".card-top h3",
+    "price": ".promo-price",
+    "priceAlt": ".meccaniche-wrapper .price",
+    "fidaty": ".fidaty", "scadenza": ".selected-flyer-text-info .date-container"
+  }
+}

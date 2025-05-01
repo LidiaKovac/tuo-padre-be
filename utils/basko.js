@@ -10,7 +10,7 @@ import sharp from "sharp"
 import puppeteer from "puppeteer"
 import { readdir, rmdir } from "fs/promises"
 import { delay, emptyFolder } from "./index.js"
-import { Logger } from "../shops/logger.js"
+import { Logger } from "../lib/logger.js"
 
 export const cleanup = async (chosenPath) => {
   const ff = await readdir(path.resolve(chosenPath, "flyers"))

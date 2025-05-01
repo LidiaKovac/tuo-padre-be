@@ -3,7 +3,7 @@
   "scripts": {
     "dev": "nodemon ./api",
     "start": "node ./api --host 0.0.0.0",
-    "scrape": "node ./shops/scraperRunner.js"
+    "scrape": "node ./scraper/scraper.runner.js"
   },
   "dependencies": {
     "@nlpjs/lang-it": "^4.26.1",

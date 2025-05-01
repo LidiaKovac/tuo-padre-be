@@ -1,5 +1,5 @@
 import { addToMongo, scrollToBottom } from "./index.js"
-import { Logger } from "../shops/logger.js"
+import { Logger } from "../lib/logger.js"
 
 export const scrapeCategory = async (page) => {
   try {
