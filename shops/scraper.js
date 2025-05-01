@@ -1,7 +1,7 @@
 import { writeFileSync } from "fs"
 import puppeteer from "puppeteer"
 import { v2 as cloudinary } from "cloudinary"
-import config from "../scraper.config.json" assert { type: "json" }
+import config from "../scraper.config.json" with {type: "json"}
 import {
   addToMongo,
   configCloudinary,
@@ -215,13 +215,13 @@ export class Scraper {
         "punti-vendita/genova-lagaccio"
       )
       await this.acceptCookies(page, "#cookiePopupSave")
-      await page.waitForSelector(".storeFlyer img[src*='volantinopiu']")
+      await page.waitForSelector(".carouselItem a")
       let counter = await page.$$eval(
-        ".storeFlyer img[src*='volantinopiu']",
+        ".carouselItem a",
         ({ length }) => length
       )
       for (let i = 1; i <= counter; i++) {
-        const volantino = await page.$(`.storeFlyer:nth-of-type(${i})`)
+        const volantino = await page.$(`.carouselItem:nth-of-type(${i}) a`)
         if (volantino && volantino.$("img[src*='volantinopiu']")) {
           await volantino.click()
           await page.reload()
@@ -412,31 +412,29 @@ export class Scraper {
     try {
       // Launch the browser and open a new blank page
       const { page, browser } = await this.launchBrowser(
-        "https://www.lidl.it",
-        "/"
+        "https://www.lidl.it/c/volantino-lidl/s10018048?ar=55100",
       )
 
       await this.acceptCookies(page, "#onetrust-accept-btn-handler")
 
-      const linkToSales = await page.waitForSelector(
-        ".n-header__main-navigation-link--sale"
-      )
-      await linkToSales.click()
+      
       await delay(3000)
-      const bigCard = await page.waitForSelector(".AHeroStageItems__Item")
+      const flyerCard = await page.waitForSelector("a.flyer")
+      await flyerCard.click()
 
-      await bigCard.click()
-      await page.waitForSelector(".ATheHeroStage__Offer")
-      const categories = await page.$$eval(
-        "div[role='row']:first-of-type .ATheHeroStage__Offer .ATheHeroStage__OfferAnchor",
-        (aTags) => aTags.map((a) => a.href)
-      )
-      Logger.level(1).log("Phase 2️⃣ - Scraping")
-      for (const cat of categories) {
-        await page.goto(cat)
+      Logger.warning("Lidl now uses PDFs as flyers. We are currently working on a solution.")
 
-        await scrapeCategory(page)
-      }
+      // await page.waitForSelector(".ATheHeroStage__Offer")
+      // const categories = await page.$$eval(
+      //   "div[role='row']:first-of-type .ATheHeroStage__Offer .ATheHeroStage__OfferAnchor",
+      //   (aTags) => aTags.map((a) => a.href)
+      // )
+      // Logger.level(1).log("Phase 2️⃣ - Scraping")
+      // for (const cat of categories) {
+      //   await page.goto(cat)
+
+      //   await scrapeCategory(page)
+      // }
       await browser.close()
     } catch (error) {
       Logger.error(error)
