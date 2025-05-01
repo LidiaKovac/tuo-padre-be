@@ -78,7 +78,6 @@ export const scrapeVolantino = async (page) => {
       })
     }
     await addToMongo(prodotti)
-    // await delay(10000)
     return
   } catch (error) {
     Logger.error(error)

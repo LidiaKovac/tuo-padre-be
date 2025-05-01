@@ -1,7 +1,6 @@
 import moment from "moment"
-import config from "../logger.config.json" assert { type: "json" }
+import config from "../logger.config.json" with { type: "json" }
 import { readFileSync, writeFileSync } from "fs"
-import { log } from "console"
 export class Logger {
   static __hierarchy = ["error", "warn", "info", "debg"] //wip
   tabLvl = 0
