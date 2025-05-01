@@ -8,7 +8,7 @@ export const scrapeIperCoop = async() => {
         "https://coopliguria.promoipercoop.it",
         ""
       )
-      acceptCookies(
+      await acceptCookies(
         page,
         config.cookies.cybot
       )

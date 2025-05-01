@@ -9,10 +9,7 @@ export const scrapeCoop = async() => {
             "cerca"
           )
 
-          acceptCookies(
-            page,
-            config.cookies.cybot
-          )
+         
           const selectors = config.coop
           await page.type(selectors.input, "genova")
     
@@ -21,12 +18,17 @@ export const scrapeCoop = async() => {
           const sub = await page.$(selectors.submit)
           await sub.scrollIntoView()
           await sub.click()
+          
           const shop = await page.waitForSelector(selectors.search)
           await shop.click()
-          // Type into search box
-          // await delay(3000)
-          Logger.level(1).log("Phase 2️⃣ - Scraping")
-          await scrapeVolatinoPiu({
+          await page.waitForNavigation()
+          await acceptCookies(
+            page,
+            config.cookies.cybot
+          )
+          Logger.log("Phase 2️⃣ - Scraping")
+          
+            await scrapeVolatinoPiu({
             page,
             shopName: "coop",
           })
