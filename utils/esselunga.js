@@ -8,17 +8,17 @@ export const expandAll = async (page) => {
       ".load-more-products-btn:not([style])"
     )
     while (hasClickableButton) {
-      await delay(100)
+      // await delay(100)
       hasClickableButton = await page.$(".load-more-products-btn:not([style])")
       if (!hasClickableButton) break
-      await delay(300)
+      // await delay(300)
       await hasClickableButton.scrollIntoView()
       await hasClickableButton.click()
       await footer.scrollIntoView()
-      await delay(500)
+      // await delay(500)
     }
 
-    await delay(5000)
+    // await delay(5000)
   } catch (error) {
     console.log(error)
 
@@ -58,7 +58,7 @@ export const scrapeVolantino = async (page) => {
     }
     
     if (!price) continue
-    await delay(300)
+    // await delay(300)
     if (!(await card.$(".card-top h3"))) continue
     
     needsCard = (await card.$(".fidaty")) ? true : false

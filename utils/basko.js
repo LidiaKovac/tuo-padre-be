@@ -45,7 +45,7 @@ export const fetchImages = async (chosenPath) => {
   if (cookie) {
     cookie.click()
   }
-  await delay(3000)
+  // await delay(3000)
   const links = await page.$$eval(".swiper-slide a[href]", (els) =>
     els.map((el) => el.href)
   )
@@ -54,12 +54,12 @@ export const fetchImages = async (chosenPath) => {
     if (!fs.existsSync(path.resolve(chosenPath, "flyers", `flyer-${flyerNum}`)))
       fs.mkdirSync(path.resolve(chosenPath, "flyers", `flyer-${flyerNum}`))
     await page.goto(link)
-    await delay(2000)
+    // await delay(2000)
     const iframeUrl = await page.$eval("iframe", (iframe) => iframe.src)
     const flyerPage = await browser.newPage()
     await flyerPage.goto(iframeUrl)
     await flyerPage.setGeolocation({ latitude: 44.414165, longitude: 8.942184 })
-    await delay(4000)
+    // await delay(4000)
     const imageUrls = await flyerPage.$$eval(".p-carousel-item img", (items) =>
       items.map((i) => i.src)
     )

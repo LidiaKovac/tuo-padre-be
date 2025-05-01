@@ -53,7 +53,7 @@ export const scrape = async (page, store) => {
     // Clicca per trasformare il volantino in lista
     await lista?.scrollIntoView()
     await lista?.click()
-    await delay(1000)
+    // await delay(1000)
     await scrollToBottom(page)
 
     const hasOrderBy = await page.$(".search-orderby")
@@ -88,7 +88,7 @@ export const expand = async (page) => {
       if (hasNext) {
         await hasNext.scrollIntoView()
         await hasNext.click()
-        await delay(1000)
+        // await delay(1000)
         // await scrollToBottom(page)
       } else break
     }

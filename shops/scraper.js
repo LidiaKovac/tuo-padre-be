@@ -58,7 +58,7 @@ export class Scraper {
   }
   static async acceptCookies(page, selector) {
     try {
-      await delay(1000)
+      // await delay(1000)
       const hasCookie = await page.$(selector)
       if (hasCookie) {
         const cookie = await page.waitForSelector(selector)
@@ -77,7 +77,7 @@ export class Scraper {
         page,
         "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
       )
-      await delay(3000)
+      // await delay(3000)
 
       await page.waitForSelector("li.esplodi")
       const button = await page.$("li.esplodi")
@@ -148,7 +148,7 @@ export class Scraper {
       )
       await page.type("#pac-input", "genova")
 
-      await delay(1000)
+      // await delay(1000)
       await page.waitForSelector("button#submit")
       const sub = await page.$("button#submit")
       await sub.scrollIntoView()
@@ -156,7 +156,7 @@ export class Scraper {
       const shop = await page.waitForSelector(".list-menu .item")
       await shop.click()
       // Type into search box
-      await delay(3000)
+      // await delay(3000)
       Logger.level(1).log("Phase 2️⃣ - Scraping")
       await this.scrapeVolantinoPiu({
         page,
@@ -180,7 +180,7 @@ export class Scraper {
       )
       await page.type(".swal2-input", "genova")
 
-      await delay(1000)
+      // await delay(1000)
       await page.keyboard.press("Enter")
       // const sub = await page.$("button#submit")
       // await sub.scrollIntoView()
@@ -190,7 +190,7 @@ export class Scraper {
       )
       await shop.click()
       // Type into search box
-      await delay(3000)
+      // await delay(3000)
       Logger.level(1).log("Phase 2️⃣ - Scraping")
       const flyers = await page.$$(".swiper-slide")
       for (const flyer of flyers) {
@@ -233,7 +233,7 @@ export class Scraper {
           Logger.log("Flyer completed, moving on to next...")
 
           await page.goBack()
-          await delay(3000)
+          // await delay(3000)
         }
       }
       await browser.close()
@@ -250,7 +250,7 @@ export class Scraper {
       )
 
       await this.acceptCookies(page, "#onetrust-accept-btn-handler")
-      await delay(3000)
+      // await delay(3000)
       await page.waitForSelector(".ws-product-grid__list li.ws-card")
       const cards = await page.$$(".ws-product-grid__list li.ws-card")
 
@@ -274,7 +274,7 @@ export class Scraper {
             (el) => el.innerText
           )
         }
-        prodName = await infoArea.$eval("h3 span", ({ innerText }) => innerText)
+        prodName = await infoArea.$eval("h3", ({ innerText }) => innerText)
         prodQuantity = await infoArea.$eval(
           ".ws-product-information ul li",
           ({ innerText }) => innerText
@@ -285,7 +285,7 @@ export class Scraper {
           ? true
           : false
         scadenza = await infoArea.$eval(
-          ".ws-product-price-validity span:last-of-type",
+          ".ws-product-price-validity div:last-of-type",
           ({ innerText }) => innerText.slice(-10)
         )
         prodotti.push({
@@ -299,7 +299,7 @@ export class Scraper {
         })
       }
 
-      await delay(5000)
+      // await delay(5000)
 
       await addToMongo(prodotti)
       await browser.close()
@@ -316,7 +316,7 @@ export class Scraper {
 
       await this.acceptCookies(page, "#onetrust-accept-btn-handler")
 
-      await delay(3000)
+      // await delay(3000)
       await scrollToBottom(page)
       // Seleziona tutti i volantini in cima alla pagina
       const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
@@ -348,7 +348,7 @@ export class Scraper {
 
       await this.acceptCookies(page, "#onetrust-accept-btn-handler")
 
-      await delay(3000)
+      // await delay(3000)
 
       const volantini = await page.$$(".card.card--carousel:not(.promoclick)")
       for (let i = 1; i <= volantini.length; i++) {
@@ -381,7 +381,7 @@ export class Scraper {
         ".cookie-manager-container-wrapper .btn.btn-blue-primary.accept-all-btn"
       )
 
-      await delay(1000)
+      // await delay(1000)
       // Seleziona tutti i volantini e li apre uno per uno
       const flyers = await page.$$(".single-flyer")
       for (let i = 0; i < flyers.length; i++) {
@@ -394,7 +394,7 @@ export class Scraper {
         const currPage = await browser.newPage()
 
         await currPage.goto(btn)
-        await delay(2000)
+        // await delay(2000)
         await this.acceptCookies(
           page,
           ".cookie-manager-container-wrapper .btn btn-blue-primary.accept-all-btn"
@@ -412,13 +412,13 @@ export class Scraper {
     try {
       // Launch the browser and open a new blank page
       const { page, browser } = await this.launchBrowser(
-        "https://www.lidl.it/c/volantino-lidl/s10018048?ar=55100",
+        "https://www.lidl.it/c/volantino-lidl/s10018048?ar=55100", ""
       )
 
       await this.acceptCookies(page, "#onetrust-accept-btn-handler")
 
       
-      await delay(3000)
+      // await delay(3000)
       const flyerCard = await page.waitForSelector("a.flyer")
       await flyerCard.click()
 
@@ -441,40 +441,41 @@ export class Scraper {
     }
   }
   static async scrapeBasko() {
-    let worker = await createWorker("ita_old")
+    Logger.warning("Basko currently works with PDFs. We are currently working on a solution.")
+    // let worker = await createWorker("ita_old")
     try {
-      Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files")
+      // Logger.level(1).log("Phase 1️⃣ - Cleaning up cloudinary and local files")
 
-      const baskoPath = path.resolve(__dirname, "..", "shops", "basko")
-      await configCloudinary()
+      // const baskoPath = path.resolve(__dirname, "..", "shops", "basko")
+      // await configCloudinary()
 
-      await cloudinary.api.delete_resources_by_prefix("shopping")
-      await cloudinary.api.delete_resources_by_prefix("flyers")
-      Logger.level(1).log("Phase 2️⃣ - Upscaling and cropping")
+      // await cloudinary.api.delete_resources_by_prefix("shopping")
+      // await cloudinary.api.delete_resources_by_prefix("flyers")
+      // Logger.level(1).log("Phase 2️⃣ - Upscaling and cropping")
 
-      await upscaleAndCrop(3.5, baskoPath)
+      // await upscaleAndCrop(3.5, baskoPath)
 
-      let images = []
-      const folders = await readdir(path.resolve(baskoPath, "parts"))
-      Logger.level(1).log("Phase 3️⃣ - Uploading images")
+      // let images = []
+      // const folders = await readdir(path.resolve(baskoPath, "parts"))
+      // Logger.level(1).log("Phase 3️⃣ - Uploading images")
 
-      const data = []
-      for (const folder of folders) {
-        images = await uploadImages(folder, baskoPath)
-        Logger.level(2).log("Performing OCR")
-        for (const { secure_url: img } of images) {
-          const ret = await worker.recognize(img)
-          const prodName = ret.data.words.map((w) => w.text).join(" ")
-          const final = {
-            store: "basko",
-            img,
-            prodName: prodName.replaceAll(/[^A-Z0-9\s]+/ig, "")
-          }
-          data.push(final)
-        }
-      }
-      await addToMongo(data)
-      await worker.terminate()
+      // const data = []
+      // for (const folder of folders) {
+      //   images = await uploadImages(folder, baskoPath)
+      //   Logger.level(2).log("Performing OCR")
+      //   for (const { secure_url: img } of images) {
+      //     const ret = await worker.recognize(img)
+      //     const prodName = ret.data.words.map((w) => w.text).join(" ")
+      //     const final = {
+      //       store: "basko",
+      //       img,
+      //       prodName: prodName.replaceAll(/[^A-Z0-9\s]+/ig, "")
+      //     }
+      //     data.push(final)
+      //   }
+      // }
+      // await addToMongo(data)
+      // await worker.terminate()
       // await cleanup(baskoPath)
     } catch (error) {
       console.log(error)
