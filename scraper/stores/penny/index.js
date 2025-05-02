@@ -1,5 +1,6 @@
-import { acceptCookies, launchBrowser } from "../../scraper.utils.js";
+import { acceptCookies, addToMongo, launchBrowser } from "../../scraper.utils.js";
 import config from "../../scraper.config.json" with {type: "json"}
+import { Logger } from "../../../lib/logger.js";
 
 const selector = (...suffix) => {
     return `${config.penny.prefix}${config.penny.product}${suffix.join("")}`
@@ -19,7 +20,7 @@ export const scrapePenny = async () => {
     await page.waitForSelector(cardsSelector);
     const cards = await page.$$(cardsSelector);
 
-    Logger.level(1).log("Phase 2️⃣ - Scraping");
+    Logger.log("Phase 2️⃣ - Scraping");
 
     const prodotti = [];
     for (const card of cards) {
@@ -46,15 +47,16 @@ export const scrapePenny = async () => {
         `${selector(s.info)} ul li`,
         ({ innerText }) => innerText
       );
-      needsCard = (await card.$(
+
+      needsCard = !!(await card.$(
         `${selector(s.discount)} img`
-      ))
-        ? true
-        : false;
+      ));
+
       scadenza = await infoArea.$eval(
         `${selector(s.scadenza)}`,
         ({ innerText }) => innerText.slice(-10)
       );
+      
       prodotti.push({
         img,
         price,

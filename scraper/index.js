@@ -19,11 +19,11 @@ export const scrapeAll = async () => {
         // Logger.log("Scraping IperCOOP: ")
         // await scrapeIperCoop()
         // Logger.log("Scraping Pam: ")
-        await scrapePam()
+        // await scrapePam()
         // Logger.log("Scraping Penny: ")
         // await scrapePenny()
         // Logger.log("Scraping Carrefour: ")
-        // await scrapeCarrefourStores()
+        await scrapeCarrefourStores()
         // Logger.log("Scraping Esselunga: ")
         // await scrapeEsselunga()
 
