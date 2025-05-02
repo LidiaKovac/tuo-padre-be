@@ -1,6 +1,6 @@
 {
   "puppeteer": {
-    "headless": true,
+    "headless": false,
     "args": ["--start-maximized", "--no-sandbox", "--disable-setuid-sandbox"]
   },
   "cookies": {
@@ -26,7 +26,7 @@
   },
   "ipercoop": {
     "search": ".swal2-input",
-    "cauroselBtn": ".swiper-slide"
+    "cauroselBtn": ".swiper-slide a"
   },
   "pam": {
     "carousel": ".carouselItem",
