@@ -46,7 +46,7 @@
     "scadenza": "-price-validity div:last-of-type"
   },
   "carrefour": {
-    "volantini": ".card.card--carousel:not(.promoclick)",
+    "volantini": ".card.card--carousel:not(.promoclick) a",
     "link": "a.trackingEventsLink",
     "label": "label[for='listing']",
     "h1": "h1.flayers-carousel__title",

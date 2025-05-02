@@ -2,6 +2,7 @@ import { acceptCookies, launchBrowser, scrollToBottom, addToMongo } from "../../
 import config from "../../scraper.config.json" with {type: "json"}
 
 import { Logger } from "../../../lib/logger.js"
+import { Cluster } from "puppeteer-cluster"
 
 const s = config.carrefour
 
@@ -49,7 +50,7 @@ const scrape = async (page, store) => {
         s.h1,
         ({ innerText }) => innerText
       )
-      Logger.persistent(
+      Logger.warning(
         `While scraping for ${store}, a flyer with title ${titolo} was skipped.`
       )
       return
@@ -100,50 +101,71 @@ const expand = async (page) => {
 }
 
 
-const scrapeCarrefour = async(page, name) => {
-    try {
-        
+const scrapeCarrefour = async (page, name) => {
+  try {
+    const cluster = await Cluster.launch({
+      puppeteerOptions: config.puppeteer,
+      // monitor: true,
+      maxConcurrency: 2,
+      concurrency: Cluster.CONCURRENCY_PAGE
+    })
 
-        await scrollToBottom(page)
-        // Seleziona tutti i volantini in cima alla pagina
-        const volantini = await page.$$(s.volantini)
-        for (let i = 1; i <= volantini.length; i++) {
-          const volantino = await volantini[i - 1].$eval(
-            s.link,
-            ({ href }) => href
-          )
-          if (!volantino) continue
-          const curr = await browser.newPage()
-          await curr.goto(volantino)
-          Logger.level(1).log("Phase 2️⃣ - Scraping")
-          await scrape(curr, name)
-        }
-        await browser.close()
+    const volantini = await page.$$eval(s.volantini, (els) => els.map(({ href }) => href))
+    console.log(volantini)
+
+    // await scrollToBottom(page)
+
+    await cluster.task(async ({ page, data: url }) => {
+      try {
+        await page.goto(url)
+        await scrape(page, name)
       } catch (error) {
         Logger.error(error)
       }
+    })
+    for (const url of volantini) {
+      await cluster.queue(url)
+    }
+    await cluster.idle()
+    await cluster.close()
+  
+  } catch (error) {
+    Logger.error(error)
+  }
 }
 
 
 
-export const scrapeCarrefourStores = async() => {
-    try {
-        const { page, browser } = await launchBrowser(
-            "https://www.carrefour.it/",
-            "/volantino/supermercato-carrefour-express-genova-via-bologna-94-94-a-r/2467"
-          )
-          
-          await acceptCookies(page, config.cookies.onetrust)
-        await scrapeCarrefour(page, "carrefour-express")
-        await browser.close()
-        const { pageM, browserM } = await launchBrowser(
-            "https://www.carrefour.it/",
-            "volantino/supermercato-carrefour-market-genova-via-cesarea-12r-14r-16r/4390"
-          )
-          await scrapeCarrefour(pageM, "carrefour-market")
-          await browserM.close()
-    } catch (error) {
-        Logger.error(error)
-        throw error
-    }
+export const scrapeCarrefourStores = async () => {
+  try {
+    const cluster = await Cluster.launch({
+      puppeteerOptions: config.puppeteer,
+      // monitor: true,
+      maxConcurrency: 3,
+      concurrency: Cluster.CONCURRENCY_BROWSER
+    })
+
+    await cluster.task(async ({ page, data: { url, name } }) => {
+      try {
+        await page.goto(url)
+        await acceptCookies(page, config.cookies.onetrust)
+        await scrapeCarrefour(page, name)
+      } catch (error) {
+        Logger.error(`Failed scraping url: ${url} - ${error.message}`)
+      }
+    })
+    await cluster.queue({
+      name: "carrefour-market",
+      url: "https://www.carrefour.it/volantino/supermercato-carrefour-market-genova-via-cesarea-12r-14r-16r/4390"
+    })
+    await cluster.queue({
+      name: "carrefour-express",
+      url: "https://www.carrefour.it/volantino/supermercato-carrefour-express-genova-via-bologna-94-94-a-r/2467"
+    })
+    await cluster.idle()
+    await cluster.close()
+  } catch (error) {
+    Logger.error(error)
+    throw error
+  }
 }
