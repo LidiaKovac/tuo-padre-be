@@ -22,10 +22,6 @@ export const emptyFolder = async (folderName) => {
   }
 }
 
-export function delay(time) {
-  return new Promise(function (resolve) {
-    setTimeout(resolve, time)
-  })
-}
+
 
 

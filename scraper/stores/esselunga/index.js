@@ -19,8 +19,6 @@ const expandAll = async (page) => {
     }
 
   } catch (error) {
-    console.log(error)
-
     Logger.error("error while expanding: " + error)
   }
 }

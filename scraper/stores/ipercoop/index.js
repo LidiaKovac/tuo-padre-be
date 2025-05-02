@@ -1,42 +1,61 @@
 import { acceptCookies, launchBrowser, scrapeVolatinoPiu } from "../../scraper.utils.js"
 import config from "../../scraper.config.json" with {type: "json"}
 import { Logger } from "../../../lib/logger.js"
-export const scrapeIperCoop = async() => {
-    try {
-      // Launch the browser and open a new blank page
-      const { page, browser } = await launchBrowser(
-        "https://coopliguria.promoipercoop.it",
-        ""
-      )
-      await acceptCookies(
-        page,
-        config.cookies.cybot
-      )
-      const selectors = config.ipercoop
-      const coopSelectors = config.coop
-      await page.type(selectors.search, "genova")
+import { Cluster } from "puppeteer-cluster"
+export const scrapeIperCoop = async () => {
+  const { page, browser } = await launchBrowser(
+    "https://coopliguria.promoipercoop.it",
+    ""
+  );
 
-      await page.keyboard.press("Enter")
-      const shop = await page.waitForSelector(
-        `${coopSelectors.search}:has(img[src*='Ipercoop'])`
-      )
-      await shop.click()
-      // Type into search box
-      // await delay(3000)
-      Logger.level(1).log("Phase 2️⃣ - Scraping")
-      const flyers = await page.$$(selectors.courselBtn)
-      for (const flyer of flyers) {
-        const href = await flyer.$eval("a", ({ href }) => href)
-        const { page: curr } = await this.launchBrowser(href, "")
-        await curr.goto(href)
+  try {
+    await acceptCookies(page, config.cookies.cybot);
 
-        await scrapeVolatinoPiu({
-          page: curr,
-          shopName: "ipercoop",
-        })
+    const selectors = config.ipercoop;
+    const coopSelectors = config.coop;
+
+    await page.type(selectors.search, "genova");
+    await page.keyboard.press("Enter");
+
+    const shop = await page.waitForSelector(
+      `${coopSelectors.search}:has(img[src*='Ipercoop'])`
+    );
+    await shop.click();
+    await page.waitForNavigation();
+
+    Logger.log("Phase 2️⃣ - Scraping");
+
+    const flyers = await page.$$eval(selectors.cauroselBtn, (as) =>
+      as.map((a) => a.href)
+    );
+
+    await browser.close();
+
+    const cluster = await Cluster.launch({
+      puppeteerOptions: config.puppeteer,
+      // monitor: true,
+      concurrency: Cluster.CONCURRENCY_BROWSER,
+      maxConcurrency: 3,
+    });
+
+    await cluster.task(async ({ page, data: url }) => {
+      try {
+        await page.goto(url);
+        await acceptCookies(page, config.cookies.cybot);
+        await scrapeVolatinoPiu({ page, shopName: "ipercoop" });
+      } catch (err) {
+        Logger.error(`Failed scraping ${url}: ${err.message}`);
       }
-      await browser.close()
-    } catch (error) {
-      Logger.error(error)
+    });
+
+    for (const flyer of flyers) {
+      cluster.queue(flyer);
     }
+
+    await cluster.idle();
+    await cluster.close();
+  } catch (error) {
+    Logger.error(error);
+    await browser.close();
   }
+};

@@ -2,8 +2,6 @@ import puppeteer from "puppeteer"
 import Product from "../api/schemas/product.schema.js"
 import { Logger } from "../lib/logger.js"
 import config from "./scraper.config.json" with {type: "json"}
-import { timeout } from "puppeteer"
-
 /* 
 
   TODO: make basko easier, cleaner and lighter
@@ -14,6 +12,12 @@ import { timeout } from "puppeteer"
   TODO: move basko to suggestions
   TODO: penny images
 */
+
+export function delay(time) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, time)
+  })
+}
 
 
 export const launchBrowser = async (baseUrl, endpoint) => {
@@ -41,17 +45,16 @@ export const launchBrowser = async (baseUrl, endpoint) => {
 
 export const acceptCookies = async (page, selector) => {
   try {
-    const hasCookie = await page.$(selector)
-    if (hasCookie) {
-      const cookie = await page.waitForSelector(selector)
-      await cookie.click()
-      Logger.log("Cookies accepted")
+    const cookie = await page.waitForSelector(selector, { timeout: 5000 });
+    if (cookie) {
+      await cookie.click();
+      Logger.log("✅ Cookies accepted");
     }
   } catch (error) {
-    Logger.error("Error accepting cookies: " + error)
-    // throw error
+    Logger.warning("⚠️ No cookie banner found or error accepting cookies.");
   }
-}
+};
+
 
 export const setRequestInterception = async (page) => {
   await page.setRequestInterception(true);
@@ -69,56 +72,61 @@ export const setRequestInterception = async (page) => {
 
 export const scrapeVolatinoPiu = async ({ page, shopName }) => {
   try {
-    await page.waitForSelector(".modal.show", { timeout: 2000 })
+    await delay(1500)
+    //!using a delay so that the page can fully render. 
+    //!rendering of SPAs seems a little bit weird, we might want to
+    //!condisder switchning to another library in the future
     const modal = await page.$(".modal.show")
-    await setRequestInterception(page)
     if (modal) {
-      modal.evaluate(e => e.style.display = "none")
-      const backdrop = await page.$(".modal-backdrop.fade.show")
-      await backdrop.evaluate(el => el.remove())
+      await modal.evaluate(e => e.style.display = "none");
+      const backdrop = await page.$(".modal-backdrop.fade.show");
+      if (backdrop) {
+        await backdrop.evaluate(el => el.remove());
+      }
+    } else Logger.log("Didn't find a modal. Proceeding.")
 
-    }
-    const selectors = config.volantinoPiu
-
-    await page.waitForSelector(selectors.button, { timeout: 2000 })
+    const selectors = config.volantinoPiu;
+    await delay(1000)
     const button = await page.$(selectors.button)
-    await button.click()
+    if (!button) {
+      //button is disabled
+      Logger.warning("🔨 Skipping flyer - li.esplodi doesn't exist");
+      return
+    } else {
+      await button.click({ delay: 2000 })
+      await button.click()
+    }
+
     await page.waitForSelector(selectors.card)
     const cards = await page.$$(selectors.card)
-    const scadenza = await page.$eval(
-      selectors.scadenza,
-      ({ innerText }) => innerText.split(" al ")[1].trim()
-    )
-    const prodotti = []
-    for (const card of cards) {
-      let img = null
-      let price = null
-      let prodName = null
-      let prodQuantity = null
-      let needsCard = false
-      img = await card.$eval(selectors.img, ({ src }) => src)
+    const scadenza = await page.$eval(selectors.scadenza, el =>
+      el.innerText.split(" al ")[1].trim()
+    );
 
-      const priceEl = await card.$(selectors.price)
+    const prodotti = [];
+    for (const card of cards) {
+      const img = await card.$eval(selectors.img, el => el.src);
+
+      let price = null;
+      const priceEl = await card.$(selectors.price);
       if (priceEl) {
-        price = await card.$eval(selectors.price, (el) => el.innerText)
+        price = await card.$eval(selectors.price, el => el.innerText);
       }
-      prodName = await card.$eval(`${selectors.card}${selectors.name}`, ({ innerText }) => innerText)
-      prodQuantity = await card.$eval(
-        `${selectors.card}${selectors.desc}`,
-        ({ innerText }) => innerText
-      )
-      if (await card.$(selectors.needsCard)) {
+
+      const prodName = await card.$eval(`${selectors.card}${selectors.name}`, el => el.innerText);
+      const prodQuantity = await card.$eval(`${selectors.card}${selectors.name}`, el => el.innerText);
+
+      let needsCard = false;
+      const cardImg = await card.$(selectors.needsCard);
+      if (cardImg) {
+        const src = await cardImg.evaluate(el => el.src);
         if (shopName === "pam") {
-          needsCard = await card.$eval(selectors.needsCard, ({ src }) =>
-            src.includes("per_te")
-          )
+          needsCard = src.includes("per_te");
+        } else if (shopName === "coop") {
+          needsCard = src.includes("soci");
         }
-        if (shopName === "coop") {
-          needsCard = await card.$eval(selectors.needsCard, ({ src }) =>
-            src.includes("soci")
-          )
-        }
-      } else needsCard = false
+      }
+
       prodotti.push({
         img,
         price,
@@ -127,14 +135,15 @@ export const scrapeVolatinoPiu = async ({ page, shopName }) => {
         store: shopName,
         needsCard,
         scadenza,
-      })
+      });
     }
 
-    await addToMongo(prodotti)
+    await addToMongo(prodotti);
   } catch (error) {
-    Logger.error(error)
+    Logger.error("❌ scrapeVolatinoPiu failed: " + error.message);
   }
-}
+};
+
 
 export const scrollToBottom = async (page) => {
   let currHeight = 0
@@ -151,75 +160,89 @@ export const scrollToBottom = async (page) => {
   }
 }
 
+export const addToMongoSingle = async (prod) => {
+  try {
+    const prodNames = prev.map((el) => el.prodName)
+    if (!prodNames.includes(content.prodName)) {
+      counter.added++
+      Logger.level(1).debug("Added product with name: " + content.prodName)
+      Logger.debug("prezzo", content.price)
+      content.price =
+        parseFloat(
+          content?.price
+            ?.replaceAll("€", "")
+            .replaceAll(" ", "")
+            .replaceAll(",", ".")
+            .trim() || 0
+        ) || null
+      const newProd = new Product(content)
+      await newProd.save()
+      prev.push(content)
+    } else {
+      counter.notAdded++
+      Logger.level(1).debug(
+        "Skipped product with name: " +
+        content.prodName +
+        " for reason: already present"
+      )
+    }
+  } catch (error) {
+    Logger.error("Error while adding product " + prod.prodName)
+  }
+}
+
 export const addToMongo = async (content) => {
   try {
-    Logger.level(1).log("Phase 3️⃣ - Adding to MongoDB.")
-    // await connectToDB()
-    let prev = await Product.find()
-    let counter = {
-      added: 0,
-      notAdded: 0,
-    }
-    if (content.length) {
-      for (const c of content) {
-        if (!c.price && c.store !== "basko") continue
-        if (c.price) {
-          c.price =
-            parseFloat(
-              c?.price
-                ?.replaceAll("€", "")
-                .replaceAll(" ", "")
-                .replaceAll(",", ".")
-                .trim() || 0
-            ) || null
-        }
+    Logger.log("Phase 3️⃣ - Adding to MongoDB.")
 
-        const found = prev.find(
-          (p) => p.prodName === c.prodName && p.store === c.store
-        )
-        if (!found) {
-          Logger.level(3).debug("Added product with name:" + c.prodName)
-          counter.added++
-          const newProd = new Product(c)
-          await newProd.save()
-          prev.push(c)
-        } else {
-          Logger.level(3).debug("Skipped product with name: " + c.prodName)
-          counter.notAdded++
-        }
-      }
-    } else {
-      const prodNames = prev.map((el) => el.prodName)
-      if (!prodNames.includes(content.prodName)) {
-        counter.added++
-        Logger.level(1).debug("Added product with name: " + content.prodName)
-        Logger.debug("prezzo", content.price)
-        content.price =
+    if (!content.length) throw "Content must be an array"
+    for (const c of content) {
+      if (!c.price && c.store !== "basko") continue
+      if (c.price) {
+        c.price =
           parseFloat(
-            content?.price
+            c?.price
               ?.replaceAll("€", "")
               .replaceAll(" ", "")
               .replaceAll(",", ".")
               .trim() || 0
           ) || null
-        const newProd = new Product(content)
-        await newProd.save()
-        prev.push(content)
-      } else {
-        counter.notAdded++
-        Logger.level(1).debug(
-          "Skipped product with name: " +
-          content.prodName +
-          " for reason: already present"
-        )
       }
     }
-    Logger.level(1).log(
-      `Added ${counter.added} products, skipped ${counter.notAdded}. - Total products: ${prev.length}`
+
+    const operations = content.map((item) => {
+      if (!item.price && item.store !== "basko") return null;
+      if(typeof item.price !== "number") {
+
+        const cleanedPrice =
+        parseFloat(
+          item?.price
+          ?.replaceAll("€", "")
+          .replaceAll(" ", "")
+          .replaceAll(",", ".")
+          .trim() || 0
+        ) || null;
+        
+        item.price = cleanedPrice;
+      }
+
+      return {
+        updateOne: {
+          filter: { prodName: item.prodName, store: item.store },
+          update: { $setOnInsert: item },
+          upsert: true,
+        },
+      };
+    }).filter(Boolean); // remove nulls
+
+    await Product.bulkWrite(operations);
+
+    Logger.log(
+      `Products added`
     )
     // await mongoose.disconnect()
   } catch (error) {
-    Logger.level(1).error(error)
+    Logger.error(error)
   }
 }
 
