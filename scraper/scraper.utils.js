@@ -193,36 +193,24 @@ export const addToMongoSingle = async (prod) => {
 
 export const addToMongo = async (content) => {
   try {
+
     Logger.log("Phase 3️⃣ - Adding to MongoDB.")
 
     if (!content.length) throw "Content must be an array"
-    for (const c of content) {
-      if (!c.price && c.store !== "basko") continue
-      if (c.price) {
-        c.price =
+    
+    const operations = content.map((item) => {
+      if (!item.price && item.store !== "basko") return null;
+      if (typeof item.price !== "number") {
+
+        const cleanedPrice =
           parseFloat(
-            c?.price
+            item?.price
               ?.replaceAll("€", "")
               .replaceAll(" ", "")
               .replaceAll(",", ".")
               .trim() || 0
-          ) || null
-      }
-    }
+          ) || null;
 
-    const operations = content.map((item) => {
-      if (!item.price && item.store !== "basko") return null;
-      if(typeof item.price !== "number") {
-
-        const cleanedPrice =
-        parseFloat(
-          item?.price
-          ?.replaceAll("€", "")
-          .replaceAll(" ", "")
-          .replaceAll(",", ".")
-          .trim() || 0
-        ) || null;
-        
         item.price = cleanedPrice;
       }
 
