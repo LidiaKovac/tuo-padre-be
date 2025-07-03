@@ -41,7 +41,7 @@ prodRoute.get("/", async (req, res, next) => {
     query.criteria.prodName && query.criteria.prodName.length > 0
       ? commonQ
       : { ...storeQ, ...query.criteria }
-  ).count()
+  ).length
   const prods = await Product.find(
     query.criteria.prodName && query.criteria.prodName.length > 0
       ? commonQ
