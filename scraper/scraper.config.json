@@ -1,6 +1,6 @@
 {
   "puppeteer": {
-    "headless": false,
+    "headless": true,
     "args": ["--start-maximized", "--no-sandbox", "--disable-setuid-sandbox"]
   },
   "cookies": {

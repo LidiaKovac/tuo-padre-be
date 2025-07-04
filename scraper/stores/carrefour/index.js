@@ -1,4 +1,4 @@
-import { acceptCookies, launchBrowser, scrollToBottom, addToMongo } from "../../scraper.utils.js"
+import { acceptCookies, scrollToBottom, addToMongo } from "../../scraper.utils.js"
 import config from "../../scraper.config.json" with {type: "json"}
 
 import { Logger } from "../../../lib/logger.js"
@@ -68,7 +68,6 @@ const scrape = async (page, store) => {
     let prodotti = []
     // Espande tutti i prodotti
     await expand(page)
-    await page.waitForSelector(s.prod)
     const cards = await page.$$(s.prod)
 
     const scadenza = await page.$eval(
@@ -128,7 +127,7 @@ const scrapeCarrefour = async (page, name) => {
     }
     await cluster.idle()
     await cluster.close()
-  
+
   } catch (error) {
     Logger.error(error)
   }
