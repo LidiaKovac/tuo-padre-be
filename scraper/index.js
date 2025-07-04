@@ -10,12 +10,12 @@ import moment from "moment"
 
 export const scrapeAll = async() => {
     try {
-        await Product.deleteMany({})
-        Logger.log("Scraping has started...")
-        const startTime = new Date()
-        Logger.log("Start time: " + moment(startTime).fromNow(true))
-        Logger.log("Scraping COOP: ")
-        await scrapeCoop()
+        // await Product.deleteMany({})
+        // Logger.log("Scraping has started...")
+        // const startTime = new Date()
+        // Logger.log("Start time: " + moment(startTime).fromNow(true))
+        // Logger.log("Scraping COOP: ")
+        // await scrapeCoop()
         // Logger.log("Scraping IperCOOP: ")
         // await scrapeIperCoop()
         // Logger.log("Scraping Pam: ")
