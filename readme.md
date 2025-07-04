@@ -1,7 +1,5 @@
 ## Known Issues: 
 
-<!-- - Coop don't work anymore  -->
-<!-- - IperCoop is delayed and throws an error+ -->
 - Lidl selector is unavailable -> uses PDF
 <!-- - PAM selector doesn't work DONE -->
 - Penny selector doesn't work
