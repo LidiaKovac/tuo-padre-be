@@ -1,0 +1,47 @@
+[
+  {
+    "storeName": "coop",
+    "url": "https://volantinocoop.it/",
+    "type": "volantino_piu"
+  },
+  {
+    "storeName": "ipercoop",
+    "url": "https://coopliguria.promoipercoop.it",
+    "type": "volantino_piu"
+  },
+  {
+    "storeName": "basko",
+    "url": "https://www.basko.it/volantino-offerte",
+    "type": "pdf"
+  },
+  {
+    "storeName": "carrefour_express",
+    "url": "https://www.carrefour.it/volantino/supermercato-carrefour-express-genova-via-bologna-94-94-a-r/2467",
+    "type": "pdf_clickable"
+  },
+  {
+    "storeName": "carrefour_market",
+    "url": "https://www.carrefour.it/volantino/supermercato-carrefour-market-genova-via-cesarea-12r-14r-16r/4390",
+    "type": "pdf_clickable"
+  },
+  {
+    "storeName": "esselunga",
+    "url": "https://www.esselunga.it/it-it/promozioni/volantini.ben.html",
+    "type": "pdf"
+  },
+  {
+    "storeName": "lidl",
+    "url": "https://www.lidl.it/c/volantino-lidl/s10018048?ar=55100",
+    "type": "pdf"
+  },
+  {
+    "storeName": "pam",
+    "url": "https://www.pampanorama.it/punti-vendita/genova-lagaccio",
+    "type": "volantino_piu"
+  },
+  {
+    "storeName": "penny",
+    "url": "https://www.penny.it/offerte",
+    "type": "custom"
+  }
+]

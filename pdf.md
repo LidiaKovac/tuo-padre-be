@@ -1,6 +1,3 @@
-Thank you for the image example — this provides a much clearer picture of the layout challenges you're working with. Here's how I’d rework the pipeline to handle this type of flyer, considering the *lack of defined borders*, *dense layout*, and *variability between pages*:
-
----
 
 ### 🧠 **Updated Approach: Fully Automated PDF-to-Structured-Data Pipeline for Sales Flyers**
 

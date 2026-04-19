@@ -67,6 +67,7 @@
     "name": ".card-top h3",
     "price": ".promo-price",
     "priceAlt": ".meccaniche-wrapper .price",
-    "fidaty": ".fidaty", "scadenza": ".selected-flyer-text-info .date-container"
+    "fidaty": ".fidaty",
+    "scadenza": ".selected-flyer-text-info .date-container"
   }
 }

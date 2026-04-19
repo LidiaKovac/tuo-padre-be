@@ -1,0 +1,7 @@
+path: C:/Users/Noemi/Documents/GitHub/shopping-comparison/scraper/model/data/_autosplit
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 1
+names: ['product']
